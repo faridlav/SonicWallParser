@@ -54,12 +54,13 @@ static int Run(string[] args)
     foreach (var w in parseResult.Warnings)
         Console.WriteLine($"  ⚠ {w}");
 
-    var kv = parseResult.Value!;
+    var settings = parseResult.Value!;
+    var kv = settings.Values;
     Console.WriteLine($"  → {kv.Count:N0} key-value pairs extracted");
     Console.WriteLine();
 
     Console.WriteLine("Extracting configuration tables...");
-    var config = TableExtractor.Extract(kv);
+    var config = TableExtractor.Extract(settings);
     Console.WriteLine();
     PrintSummary(config);
 

@@ -37,4 +37,7 @@ public class SonicWallConfig
     public List<FirmwareHistory> FirmwareHistory { get; set; } = [];
 
     public Dictionary<string, string> RawSettings { get; set; } = [];
+    public Dictionary<string, int> RawSettingLineNumbers { get; set; } = [];
+    public List<ParseDiagnostic> Diagnostics { get; set; } = [];
+    public List<UnknownSection> UnknownSections { get; set; } = [];
 }

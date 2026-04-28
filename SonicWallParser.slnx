@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="SonicWallParser/SonicWallParser.csproj" />
+  <Project Path="SonicWallParser.Tests/SonicWallParser.Tests.csproj" />
 </Solution>

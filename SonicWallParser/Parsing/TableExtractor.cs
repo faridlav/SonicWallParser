@@ -1,4 +1,5 @@
 using SonicWallParser.Models;
+using System.Text.RegularExpressions;
 
 namespace SonicWallParser.Parsing;
 
@@ -9,14 +10,42 @@ namespace SonicWallParser.Parsing;
 /// </summary>
 public static class TableExtractor
 {
-    private static readonly List<string> _warnings = [];
+    private static readonly List<ParseDiagnostic> _diagnostics = [];
+    private static Dictionary<string, int> _lineNumbers = [];
+    private static bool _hasSeedDiagnostics;
+
+    private static readonly string[] _knownPrefixes =
+    [
+        "buildNum", "shortProdName", "localeVersionStr", "prefsHistory", "cli_", "sonicOsApi_",
+        "addrObj", "svcObj", "policy", "natPolicy", "zoneObj", "iface_", "interface_", "eth_",
+        "vpnPolicy", "ipsec", "vpn", "userObj", "userGroupObj", "addro_", "so_", "uo_",
+        "schedObj", "prefs_dh", "irg_", "irgmem_", "cfsPolicy", "bwObj", "nacAttr",
+        "firmwareHistory"
+    ];
 
     /// <summary>
     /// Extracts all supported configuration tables from the given key-value dictionary.
     /// </summary>
+    public static SonicWallConfig Extract(ParsedSettings settings)
+    {
+        _lineNumbers = settings.KeyLineNumbers;
+        _diagnostics.Clear();
+        _diagnostics.AddRange(settings.Diagnostics);
+        _hasSeedDiagnostics = true;
+
+        var config = Extract(settings.Values);
+        _hasSeedDiagnostics = false;
+        config.RawSettingLineNumbers = settings.KeyLineNumbers;
+        return config;
+    }
+
     public static SonicWallConfig Extract(Dictionary<string, string> kv)
     {
-        _warnings.Clear();
+        if (!_hasSeedDiagnostics)
+        {
+            _diagnostics.Clear();
+            _lineNumbers = [];
+        }
 
         var config = new SonicWallConfig
         {
@@ -56,8 +85,18 @@ public static class TableExtractor
             FirmwareHistory = SafeExtract("Firmware History", () => ExtractFirmwareHistory(kv)),
         };
 
-        foreach (var w in _warnings)
-            Console.Error.WriteLine($"  ⚠ {w}");
+        config.UnknownSections = ExtractUnknownSections(kv);
+        foreach (var unknown in config.UnknownSections)
+        {
+            AddDiagnostic(ParseSeverity.Info, unknown.Name,
+                $"Unparsed or unsupported settings group '{unknown.Name}' contains {unknown.KeyCount} key(s). " +
+                $"Sample keys: {string.Join(", ", unknown.SampleKeys)}.");
+        }
+
+        config.Diagnostics = [.. _diagnostics];
+
+        foreach (var d in _diagnostics.Where(d => d.Severity != ParseSeverity.Info))
+            Console.Error.WriteLine($"  ⚠ {d.Section}: {d.Message}");
 
         return config;
     }
@@ -70,7 +109,7 @@ public static class TableExtractor
         }
         catch (Exception ex)
         {
-            _warnings.Add($"Failed to extract {sectionName}: {ex.Message}");
+            AddDiagnostic(ParseSeverity.Error, sectionName, $"Failed to extract section: {ex.Message}");
             return [];
         }
     }
@@ -688,9 +727,72 @@ public static class TableExtractor
     /// </summary>
     private static int CountByPrefix(Dictionary<string, string> kv, string prefix)
     {
-        int count = 0;
-        while (kv.ContainsKey($"{prefix}{count}"))
-            count++;
-        return count;
+        var indexes = kv.Keys
+            .Select(k => TryGetIndexedSuffix(k, prefix))
+            .Where(i => i >= 0)
+            .OrderBy(i => i)
+            .ToList();
+
+        if (indexes.Count == 0)
+            return 0;
+
+        var max = indexes[^1];
+        for (var i = 0; i <= max; i++)
+        {
+            if (!indexes.Contains(i))
+            {
+                AddDiagnostic(ParseSeverity.Warning, prefix.TrimEnd('_'),
+                    $"Missing indexed key '{prefix}{i}'. Continuing with remaining entries.");
+            }
+        }
+
+        return max + 1;
+    }
+
+    private static int TryGetIndexedSuffix(string key, string prefix)
+    {
+        if (!key.StartsWith(prefix, StringComparison.Ordinal))
+            return -1;
+
+        var suffix = key[prefix.Length..];
+        return int.TryParse(suffix, out var index) ? index : -1;
+    }
+
+    private static List<UnknownSection> ExtractUnknownSections(Dictionary<string, string> kv)
+    {
+        return kv.Keys
+            .Where(IsUnknownKey)
+            .GroupBy(InferSection)
+            .Select(g => new UnknownSection
+            {
+                Name = g.Key,
+                KeyCount = g.Count(),
+                SampleKeys = g.Take(5).ToList()
+            })
+            .OrderBy(s => s.Name)
+            .ToList();
+    }
+
+    private static bool IsUnknownKey(string key)
+        => !_knownPrefixes.Any(prefix => key.StartsWith(prefix, StringComparison.Ordinal));
+
+    private static string InferSection(string key)
+    {
+        var indexed = Regex.Match(key, @"^(?<name>.+?)_\d+$");
+        if (indexed.Success)
+            return indexed.Groups["name"].Value;
+
+        var underscore = key.IndexOf('_');
+        return underscore > 0 ? key[..underscore] : "Global/Other";
+    }
+
+    private static void AddDiagnostic(ParseSeverity severity, string section, string message)
+    {
+        _diagnostics.Add(new ParseDiagnostic
+        {
+            Severity = severity,
+            Section = section,
+            Message = message
+        });
     }
 }

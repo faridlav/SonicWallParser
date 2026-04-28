@@ -25,6 +25,7 @@ public static class HtmlExporter
         sb.AppendLine("<main>");
 
         SectionDeviceInfo(sb, config);
+        SectionParsingDiagnostics(sb, config);
         SectionZones(sb, config);
         SectionInterfaces(sb, config);
         SectionAddressObjects(sb, config);
@@ -189,6 +190,9 @@ tr:hover td { background: var(--bg3); }
 .tag-yes { background: rgba(22,163,74,.12); color: var(--allow); }
 .tag-no { background: rgba(220,38,38,.08); color: var(--fg3); }
 .tag-on { background: rgba(37,99,235,.1); color: var(--accent); }
+.severity-info { color: var(--accent); font-weight: 700; }
+.severity-warning { color: #b45309; font-weight: 700; }
+.severity-error { color: var(--deny); font-weight: 700; }
 
 /* VPN detail blocks */
 .vpn-detail {
@@ -284,6 +288,33 @@ tr:hover td { background: var(--bg3); }
                 InfoItem(sb, "Previous Firmware", $"{fw.BuildNumber} — {fw.Timestamp}");
         }
         sb.AppendLine("</div>");
+        CloseSection(sb);
+    }
+
+    private static void SectionParsingDiagnostics(StringBuilder sb, SonicWallConfig config)
+    {
+        if (config.Diagnostics.Count == 0 && config.UnknownSections.Count == 0)
+            return;
+
+        OpenSection(sb, "sec-parse-warnings", "Parsing Warnings / Skipped Sections", config.Diagnostics.Count);
+        if (config.Diagnostics.Count > 0)
+        {
+            sb.AppendLine("<table><thead><tr><th>Severity</th><th>Section</th><th>Line</th><th>Message</th></tr></thead><tbody>");
+            foreach (var d in config.Diagnostics)
+            {
+                var severity = d.Severity.ToString();
+                sb.AppendLine($"<tr><td class=\"severity-{severity.ToLowerInvariant()}\">{E(severity)}</td><td>{E(d.Section)}</td><td>{E(d.Location)}</td><td>{E(d.Message)}</td></tr>");
+            }
+            sb.AppendLine("</tbody></table>");
+        }
+
+        if (config.UnknownSections.Count > 0)
+        {
+            sb.AppendLine("<table><thead><tr><th>Unparsed Group</th><th>Keys</th><th>Sample Keys</th></tr></thead><tbody>");
+            foreach (var section in config.UnknownSections)
+                sb.AppendLine($"<tr><td>{E(section.Name)}</td><td>{section.KeyCount}</td><td>{E(string.Join(", ", section.SampleKeys))}</td></tr>");
+            sb.AppendLine("</tbody></table>");
+        }
         CloseSection(sb);
     }
 
