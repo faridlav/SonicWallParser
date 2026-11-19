@@ -653,7 +653,8 @@ public static class PdfExporter
                     Row("DNS 2", scope.Dns2, r++);
                     Row("DNS 3", scope.Dns3, r++);
                     Row("Domain", scope.DomainName, r++);
-                    Row("Lease Time", scope.LeaseTime.ToString(), r++);
+                    Row("WINS", string.Join(", ", new[] { scope.Wins1, scope.Wins2 }.Where(w => !string.IsNullOrEmpty(w))), r++);
+                    Row("Lease Time", ReportText.Lease(scope.LeaseTime), r++);
                     Row("Enabled", YN(scope.Enabled), r);
                 });
                 col.Item().PaddingBottom(6);

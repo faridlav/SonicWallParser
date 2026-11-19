@@ -376,7 +376,8 @@ public static class MarkdownExporter
             sb.AppendLine($"| DNS 2 | {scope.Dns2} |");
             sb.AppendLine($"| DNS 3 | {scope.Dns3} |");
             sb.AppendLine($"| Domain Name | {scope.DomainName} |");
-            sb.AppendLine($"| Lease Time | {scope.LeaseTime} |");
+            sb.AppendLine($"| WINS | {ReportText.MdCell(string.Join(", ", new[] { scope.Wins1, scope.Wins2 }.Where(w => !string.IsNullOrEmpty(w))))} |");
+            sb.AppendLine($"| Lease Time | {ReportText.Lease(scope.LeaseTime)} |");
             sb.AppendLine($"| Enabled | {YN(scope.Enabled)} |");
             sb.AppendLine();
         }

@@ -517,7 +517,8 @@ tr:hover td { background: var(--bg3); }
             InfoItem(sb, "Gateway", s.Gateway);
             InfoItem(sb, "DNS", $"{s.Dns1}, {s.Dns2}, {s.Dns3}");
             InfoItem(sb, "Domain", s.DomainName);
-            InfoItem(sb, "Lease", $"{s.LeaseTime}s");
+            InfoItem(sb, "Lease", ReportText.Lease(s.LeaseTime));
+            InfoItem(sb, "WINS", string.Join(", ", new[] { s.Wins1, s.Wins2 }.Where(w => !string.IsNullOrEmpty(w))));
             InfoItem(sb, "Enabled", s.Enabled ? "Yes" : "No");
             sb.AppendLine("</div></div>");
         }

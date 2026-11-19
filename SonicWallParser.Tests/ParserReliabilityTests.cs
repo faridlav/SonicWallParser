@@ -56,7 +56,8 @@ public class ParserReliabilityTests
 
         var config = TableExtractor.Extract(result.Value!);
 
-        Assert.Equal(3, config.Zones.Count);
+        // A missing index is skipped (no blank row) but still reported.
+        Assert.Equal(2, config.Zones.Count);
         Assert.Single(config.AddressObjects);
         Assert.Contains(config.Diagnostics, d =>
             d.Section == "zoneObjId" &&
