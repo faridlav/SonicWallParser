@@ -1,529 +1,81 @@
 using System.Text;
 using SonicWallParser.Analysis;
 using SonicWallParser.Models;
+using SonicWallParser.Reporting;
 
 namespace SonicWallParser.Export;
 
 /// <summary>
-/// Generates a Markdown-formatted configuration report with tabular data for all extracted sections.
+/// Generates a GitHub-flavoured Markdown report from a report document. Every free-text cell is escaped, so a
+/// pipe or line break in a name or comment cannot break a table.
 /// </summary>
 public static class MarkdownExporter
 {
     /// <summary>
-    /// Produces a complete Markdown report string from the given SonicWall configuration.
+    /// Generates the Markdown report as a string from the given SonicWall configuration.
     /// </summary>
     public static string Generate(SonicWallConfig config)
+        => Render(ReportBuilder.Build(config, ConfigAnalyzer.Analyze(config), ReportTarget.Markdown));
+
+    /// <summary>Renders any report document (main, findings or migration) to Markdown.</summary>
+    public static string Render(ReportDocument doc)
     {
         var sb = new StringBuilder(32_000);
 
-        Header(sb, config);
-        WarningsSection(sb, config);
-        DeviceHistory(sb, config);
-        ZonesSection(sb, config);
-        InterfacesSection(sb, config);
-        AddressObjectsSection(sb, config);
-        AddressGroupsSection(sb, config);
-        ServiceObjectsSection(sb, config);
-        ServiceGroupsSection(sb, config);
-        SchedulesSection(sb, config);
-        FirewallPoliciesV4Section(sb, config);
-        FirewallPoliciesV6Section(sb, config);
-        NatPoliciesV4Section(sb, config);
-        NatPoliciesV6Section(sb, config);
-        VpnPoliciesSection(sb, config);
-        UsersSection(sb, config);
-        UserGroupsSection(sb, config);
-        UserGroupMembershipsSection(sb, config);
-        DhcpSection(sb, config);
-        WanLbSection(sb, config);
-        ContentFilterSection(sb, config);
-        BandwidthObjectsSection(sb, config);
-        NacProfilesSection(sb, config);
-        UnusedRulesSection(sb, config);
+        sb.AppendLine($"# {doc.Title}");
+        sb.AppendLine();
+        if (doc.Subtitle.Length > 0)
+        {
+            sb.AppendLine($"**{ReportText.MdCell(doc.Subtitle)}**");
+            sb.AppendLine();
+        }
+
+        foreach (var line in doc.Meta)
+            sb.AppendLine($"- {line}");
+        if (doc.Meta.Count > 0)
+            sb.AppendLine();
+
+        foreach (var section in doc.Sections)
+        {
+            sb.AppendLine("---");
+            sb.AppendLine($"## {section.Title}");
+            sb.AppendLine();
+            foreach (var block in section.Blocks)
+                RenderBlock(sb, block);
+        }
 
         return sb.ToString();
     }
 
-    private static void Header(StringBuilder sb, SonicWallConfig config)
+    private static void RenderBlock(StringBuilder sb, Block block)
     {
-        sb.AppendLine("# SonicWall Configuration Report");
-        sb.AppendLine();
-        sb.AppendLine($"- **Product:** {config.Global.ProductName}");
-        sb.AppendLine($"- **Firmware:** {config.Global.BuildNumber}");
-        sb.AppendLine($"- **Firmware generation:** {config.Global.Firmware.Description}");
-        sb.AppendLine($"- **Serial:** {config.Global.SerialNumber}");
-        sb.AppendLine($"- **Locale:** {config.Global.Locale}");
-        sb.AppendLine($"- **Report Generated:** {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
-        sb.AppendLine();
-    }
-
-    private static void WarningsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        var warnings = ReportText.Warnings(config);
-        if (warnings.Count == 0) return;
-
-        sb.AppendLine("## ⚠ Parser Warnings");
-        sb.AppendLine();
-        foreach (var d in warnings)
+        switch (block)
         {
-            var where = d.Location.Length > 0 ? $", line {d.Location}" : string.Empty;
-            sb.AppendLine($"- **{d.Severity}** ({ReportText.MdCell(d.Section)}{where}): {ReportText.MdCell(d.Message)}");
-        }
-        sb.AppendLine();
-    }
-
-    private static void DeviceHistory(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.FirmwareHistory.Count == 0 && string.IsNullOrEmpty(config.Global.PreviousProduct))
-            return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Device & Firmware History");
-        sb.AppendLine();
-
-        if (!string.IsNullOrEmpty(config.Global.PreviousProduct))
-        {
-            sb.AppendLine($"Migrated from **{config.Global.PreviousProduct}** " +
-                          $"(firmware {config.Global.PreviousBuild}) " +
-                          $"on {config.Global.MigrationTimestamp}.");
-            sb.AppendLine();
-        }
-
-        if (config.FirmwareHistory.Count > 0)
-        {
-            sb.AppendLine("| Firmware Version | Upgrade Date |");
-            sb.AppendLine("|------------------|--------------|");
-            foreach (var fw in config.FirmwareHistory)
-                sb.AppendLine($"| {C(fw.BuildNumber)} | {C(fw.Timestamp)} |");
-            sb.AppendLine();
+            case TableBlock t:
+                sb.AppendLine("| " + string.Join(" | ", t.Headers.Select(ReportText.MdCell)) + " |");
+                sb.AppendLine("|" + string.Concat(t.Headers.Select(_ => "---|")));
+                foreach (var row in t.Rows)
+                    sb.AppendLine("| " + string.Join(" | ", row.Cells.Select(CellText)) + " |");
+                sb.AppendLine();
+                break;
+            case KeyValueBlock kv:
+                sb.AppendLine("| Parameter | Value |");
+                sb.AppendLine("|---|---|");
+                foreach (var item in kv.Items)
+                    sb.AppendLine($"| {ReportText.MdCell(item.Key)} | {CellText(item.Value)} |");
+                sb.AppendLine();
+                break;
+            case ParagraphBlock p:
+                sb.AppendLine(p.IsWarning ? $"> **Warning:** {ReportText.MdCell(p.Text)}" : ReportText.MdCell(p.Text));
+                sb.AppendLine();
+                break;
+            case SubHeadingBlock h:
+                sb.AppendLine($"### {ReportText.MdCell(h.Text)}");
+                sb.AppendLine();
+                break;
         }
     }
 
-    private static void ZonesSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.Zones.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Zones");
-        sb.AppendLine();
-        sb.AppendLine("| Zone | Type | Intra-Zone | GAV | IPS | App Ctrl | Anti-Spy | DPI-SSL | CFS |");
-        sb.AppendLine("|------|------|------------|-----|-----|----------|----------|---------|-----|");
-        foreach (var z in config.Zones)
-        {
-            sb.AppendLine($"| {C(z.Name)} | {C(z.ZoneTypeLabel)} | {YN(z.IntraZoneCommunication)} | " +
-                          $"{YN(z.GatewayAntivirus)} | {ReportText.YesNoUnknown(z.IntrusionPrevention)} | " +
-                          $"{YN(z.AppControl)} | {YN(z.AntiSpyware)} | {YN(z.DpiSslClient)} | " +
-                          $"{YN(z.ContentFilter)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void InterfacesSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.Interfaces.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Interfaces");
-        sb.AppendLine();
-        sb.AppendLine("| Interface | Description | Zone | IP Address | Subnet Mask | VLAN | HTTPS | SSH | Ping | SNMP |");
-        sb.AppendLine("|-----------|-------------|------|------------|-------------|------|-------|-----|------|------|");
-        foreach (var iface in config.Interfaces)
-        {
-            var vlan = iface.VlanTag > 0 ? iface.VlanTag.ToString() : "—";
-            sb.AppendLine($"| {C(iface.Name)} | {C(iface.Comment)} | {C(iface.ZoneName)} | " +
-                          $"{C(iface.ActiveIp)} | {C(iface.ActiveMask)} | {vlan} | " +
-                          $"{YN(iface.HttpsMgmt)} | {YN(iface.SshMgmt)} | " +
-                          $"{YN(iface.PingMgmt)} | {YN(iface.SnmpMgmt)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void AddressObjectsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.AddressObjects.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Address Objects");
-        sb.AppendLine();
-        sb.AppendLine("| # | Name | Type | Address | Zone |");
-        sb.AppendLine("|---|------|------|---------|------|");
-        foreach (var ao in config.AddressObjects)
-            sb.AppendLine($"| {ao.Index} | {C(ao.Name)} | {C(ao.TypeLabel)} | {C(ao.FormattedAddress)} | {C(ao.Zone)} |");
-        sb.AppendLine();
-    }
-
-    private static void AddressGroupsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.AddressGroupMemberships.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Address Object Group Memberships");
-        sb.AppendLine();
-        sb.AppendLine("| Group | Member |");
-        sb.AppendLine("|-------|--------|");
-        foreach (var gm in config.AddressGroupMemberships.OrderBy(g => g.Group))
-            sb.AppendLine($"| {C(gm.Group)} | {C(gm.Member)} |");
-        sb.AppendLine();
-    }
-
-    private static void ServiceObjectsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.ServiceObjects.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Service Objects");
-        sb.AppendLine();
-        sb.AppendLine("| # | Name | Protocol | Ports |");
-        sb.AppendLine("|---|------|----------|-------|");
-        foreach (var svc in config.ServiceObjects)
-            sb.AppendLine($"| {svc.Index} | {C(svc.Name)} | {C(svc.Protocol)} | {C(svc.PortRange)} |");
-        sb.AppendLine();
-    }
-
-    private static void ServiceGroupsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.ServiceGroupMemberships.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Service Object Group Memberships");
-        sb.AppendLine();
-        sb.AppendLine("| Group | Member |");
-        sb.AppendLine("|-------|--------|");
-        foreach (var gm in config.ServiceGroupMemberships.OrderBy(g => g.Group))
-            sb.AppendLine($"| {C(gm.Group)} | {C(gm.Member)} |");
-        sb.AppendLine();
-    }
-
-    private static void SchedulesSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.Schedules.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Schedule Objects");
-        sb.AppendLine();
-        sb.AppendLine("| # | Name | Time Window |");
-        sb.AppendLine("|---|------|-------------|");
-        foreach (var s in config.Schedules)
-        {
-            sb.AppendLine($"| {s.Index} | {C(s.Name)} | {C(s.TimeWindow)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void FirewallPoliciesV4Section(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.FirewallPolicies.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Firewall Policies (IPv4)");
-        sb.AppendLine();
-        sb.AppendLine(ReportText.RuleOriginSummary(config));
-        sb.AppendLine();
-        if (ReportText.ActionNote(config) is { } actionNote)
-        {
-            sb.AppendLine(actionNote);
-            sb.AppendLine();
-        }
-        sb.AppendLine("| # | Action | Src Zone | Dst Zone | Source | Destination | Service | On | Hits | Comment |");
-        sb.AppendLine("|---|--------|----------|----------|--------|-------------|---------|-----|------|---------|");
-        foreach (var p in config.FirewallPolicies)
-        {
-            sb.AppendLine($"| {p.Index} | {C(p.ActionLabel)} | {C(p.SourceZone)} | {C(p.DestZone)} | " +
-                          $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | " +
-                          $"{YN(p.Enabled)} | {p.HitCount:N0} | {C(p.Comment)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void FirewallPoliciesV6Section(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.FirewallPoliciesV6.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Firewall Policies (IPv6)");
-        sb.AppendLine();
-        sb.AppendLine("| # | Action | Src Zone | Dst Zone | Source | Destination | Service | On | Comment |");
-        sb.AppendLine("|---|--------|----------|----------|--------|-------------|---------|-----|---------|");
-        foreach (var p in config.FirewallPoliciesV6)
-        {
-            sb.AppendLine($"| {p.Index} | {C(p.ActionLabel)} | {C(p.SourceZone)} | {C(p.DestZone)} | " +
-                          $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | " +
-                          $"{YN(p.Enabled)} | {C(p.Comment)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void NatPoliciesV4Section(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.NatPolicies.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## NAT Policies (IPv4)");
-        sb.AppendLine();
-        sb.AppendLine("| # | Orig Src | Orig Dst | Orig Svc | Trans Src | Trans Dst | Trans Svc | On | Comment |");
-        sb.AppendLine("|---|----------|----------|----------|-----------|-----------|-----------|-----|---------|");
-        foreach (var n in config.NatPolicies)
-        {
-            sb.AppendLine($"| {n.Index} | {OrAny(n.OriginalSource)} | {OrAny(n.OriginalDest)} | " +
-                          $"{OrAny(n.OriginalService)} | {OrAny(n.TranslatedSource)} | " +
-                          $"{OrAny(n.TranslatedDest)} | {OrAny(n.TranslatedService)} | " +
-                          $"{YN(n.Enabled)} | {C(n.Comment)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void NatPoliciesV6Section(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.NatPoliciesV6.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## NAT Policies (IPv6)");
-        sb.AppendLine();
-        sb.AppendLine("| # | Orig Src | Orig Dst | Orig Svc | Trans Src | Trans Dst | Trans Svc | On | Comment |");
-        sb.AppendLine("|---|----------|----------|----------|-----------|-----------|-----------|-----|---------|");
-        foreach (var n in config.NatPoliciesV6)
-        {
-            sb.AppendLine($"| {n.Index} | {OrAny(n.OriginalSource)} | {OrAny(n.OriginalDest)} | " +
-                          $"{OrAny(n.OriginalService)} | {OrAny(n.TranslatedSource)} | " +
-                          $"{OrAny(n.TranslatedDest)} | {OrAny(n.TranslatedService)} | " +
-                          $"{YN(n.Enabled)} | {C(n.Comment)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void VpnPoliciesSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.VpnPolicies.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## VPN Policies (IPSec)");
-        sb.AppendLine();
-
-        foreach (var vpn in config.VpnPolicies)
-        {
-            var policyType = vpn.PolicyType switch
-            {
-                0 => "Site-to-Site",
-                1 => "GroupVPN",
-                _ => $"Type {vpn.PolicyType}"
-            };
-
-            sb.AppendLine($"### VPN Policy {vpn.Index} — {policyType}");
-            sb.AppendLine();
-
-            sb.AppendLine("| Parameter | Value |");
-            sb.AppendLine("|-----------|-------|");
-            sb.AppendLine($"| Policy Type | {policyType} |");
-            sb.AppendLine($"| Remote ID | {C(vpn.Phase1RemoteId)} |");
-            sb.AppendLine($"| Local Network | {C(vpn.LocalNetwork)} |");
-            sb.AppendLine($"| Remote Network | {C(vpn.RemoteNetwork)} |");
-            sb.AppendLine($"| Bound To | {C(vpn.BoundToInterface)} |");
-            sb.AppendLine($"| **Phase 1** | |");
-            sb.AppendLine($"| Exchange Mode | {CryptoEnums.ExchangeMode(vpn.P1Exchange)} |");
-            sb.AppendLine($"| DH Group | {CryptoEnums.DhGroup(vpn.P1DhGroup)} |");
-            sb.AppendLine($"| Encryption | {CryptoEnums.EncryptionAlgorithm(vpn.P1CryptAlg)} |");
-            sb.AppendLine($"| Authentication | {CryptoEnums.HashAlgorithm(vpn.P1AuthAlg)} |");
-            sb.AppendLine($"| Lifetime | {vpn.P1LifeSecs:N0} seconds |");
-            sb.AppendLine($"| **Phase 2** | |");
-            sb.AppendLine($"| Protocol | {CryptoEnums.Protocol(vpn.P2Protocol)} |");
-            sb.AppendLine($"| Encryption | {CryptoEnums.EncryptionAlgorithm(vpn.P2CryptAlg)} |");
-            sb.AppendLine($"| Authentication | {CryptoEnums.HashAlgorithm(vpn.P2AuthAlg)} |");
-            sb.AppendLine($"| PFS | {YN(vpn.PfsEnabled)} |");
-            sb.AppendLine($"| Lifetime | {vpn.P2LifeSecs:N0} seconds |");
-            sb.AppendLine($"| **Options** | |");
-            sb.AppendLine($"| NetBIOS | {YN(vpn.AllowNetBIOS)} |");
-            sb.AppendLine($"| Multicast | {YN(vpn.AllowMulticast)} |");
-            sb.AppendLine($"| Remote Clients | {YN(vpn.RemoteClients)} |");
-            sb.AppendLine();
-        }
-    }
-
-    private static void UsersSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.Users.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Local Users");
-        sb.AppendLine();
-        sb.AppendLine("| # | Username | Comment | VPN Access |");
-        sb.AppendLine("|---|----------|---------|------------|");
-        foreach (var u in config.Users)
-            sb.AppendLine($"| {u.Index} | {C(u.Name)} | {C(u.Comment)} | {OrNone(u.VpnDestNet)} |");
-        sb.AppendLine();
-    }
-
-    private static void UserGroupsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.UserGroups.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## User Groups");
-        sb.AppendLine();
-        sb.AppendLine("| # | Group Name | Comment | VPN Access |");
-        sb.AppendLine("|---|------------|---------|------------|");
-        foreach (var g in config.UserGroups)
-            sb.AppendLine($"| {g.Index} | {C(g.Name)} | {C(g.Comment)} | {OrNone(g.VpnDestNet)} |");
-        sb.AppendLine();
-    }
-
-    private static void UserGroupMembershipsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.UserGroupMemberships.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## User → Group Memberships");
-        sb.AppendLine();
-        sb.AppendLine("| User | Group |");
-        sb.AppendLine("|------|-------|");
-        foreach (var gm in config.UserGroupMemberships.OrderBy(g => g.Group))
-            sb.AppendLine($"| {C(gm.Member)} | {C(gm.Group)} |");
-        sb.AppendLine();
-    }
-
-    private static void DhcpSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.DhcpScopes.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## DHCP Server Scopes");
-        sb.AppendLine();
-
-        foreach (var scope in config.DhcpScopes)
-        {
-            sb.AppendLine($"### DHCP Scope {scope.Index}");
-            sb.AppendLine();
-            sb.AppendLine("| Parameter | Value |");
-            sb.AppendLine("|-----------|-------|");
-            sb.AppendLine($"| Range | {C(scope.IpStart)} — {C(scope.IpEnd)} |");
-            sb.AppendLine($"| Subnet Mask | {C(scope.SubnetMask)} |");
-            sb.AppendLine($"| Gateway | {C(scope.Gateway)} |");
-            sb.AppendLine($"| DNS 1 | {C(scope.Dns1)} |");
-            sb.AppendLine($"| DNS 2 | {C(scope.Dns2)} |");
-            sb.AppendLine($"| DNS 3 | {C(scope.Dns3)} |");
-            sb.AppendLine($"| Domain Name | {C(scope.DomainName)} |");
-            sb.AppendLine($"| WINS | {ReportText.MdCell(string.Join(", ", new[] { scope.Wins1, scope.Wins2 }.Where(w => !string.IsNullOrEmpty(w))))} |");
-            sb.AppendLine($"| Lease Time | {ReportText.Lease(scope.LeaseTime)} |");
-            sb.AppendLine($"| Enabled | {YN(scope.Enabled)} |");
-            sb.AppendLine();
-        }
-    }
-
-    private static void WanLbSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.WanLbGroups.Count == 0 && config.WanLbMembers.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## WAN Load Balancing");
-        sb.AppendLine();
-
-        if (config.WanLbGroups.Count > 0)
-        {
-            sb.AppendLine("### LB Groups");
-            sb.AppendLine();
-            sb.AppendLine("| # | Name | Preempt | Persist | Probe Interval | Loss Threshold | Recovery Threshold |");
-            sb.AppendLine("|---|------|---------|---------|----------------|----------------|---------------------|");
-            foreach (var g in config.WanLbGroups)
-            {
-                sb.AppendLine($"| {g.Index} | {C(g.Name)} | {YN(g.Preempt)} | {YN(g.Persist)} | " +
-                              $"{g.ProbeInterval}s | {g.ProbeLossThreshold} | {g.ProbeRecoveryThreshold} |");
-            }
-            sb.AppendLine();
-        }
-
-        if (config.WanLbMembers.Count > 0)
-        {
-            sb.AppendLine("### LB Members");
-            sb.AppendLine();
-            sb.AppendLine("| # | Interface | Weight % | Probe Target 1 | Probe Target 2 | Rank |");
-            sb.AppendLine("|---|-----------|----------|----------------|----------------|------|");
-            foreach (var m in config.WanLbMembers)
-            {
-                sb.AppendLine($"| {m.Index} | {C(m.Name)} | {m.LbPercentage}% | " +
-                              $"{C(m.ProbeTarget1)}:{m.ProbePort1} | " +
-                              $"{C(m.ProbeTarget2)}:{m.ProbePort2} | {m.AdminRank} |");
-            }
-            sb.AppendLine();
-        }
-    }
-
-    private static void ContentFilterSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.ContentFilterPolicies.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Content Filter (CFS) Policies");
-        sb.AppendLine();
-        sb.AppendLine("| # | Name | Profile | Action | Zone | Users | Enabled |");
-        sb.AppendLine("|---|------|---------|--------|------|-------|---------|");
-        foreach (var cfs in config.ContentFilterPolicies)
-        {
-            sb.AppendLine($"| {cfs.Index} | {C(cfs.Name)} | {C(cfs.ProfileObject)} | {C(cfs.ActionObject)} | " +
-                          $"{C(cfs.DestZone)} | {C(cfs.IncludedUsers)} | {YN(cfs.Enabled)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void BandwidthObjectsSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.BandwidthObjects.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## Bandwidth Management Objects");
-        sb.AppendLine();
-        sb.AppendLine("| # | Name | Guaranteed | Max | Comment |");
-        sb.AppendLine("|---|------|------------|-----|---------|");
-        foreach (var bw in config.BandwidthObjects)
-        {
-            var guarUnit = bw.GuaranteedUnit == 1 ? "Mbps" : "kbps";
-            var maxUnit = bw.MaxUnit == 1 ? "Mbps" : "kbps";
-            sb.AppendLine($"| {bw.Index} | {C(bw.Name)} | {bw.GuaranteedBw} {guarUnit} | {bw.MaxBw} {maxUnit} | {C(bw.Comment)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void NacProfilesSection(StringBuilder sb, SonicWallConfig config)
-    {
-        if (config.NacProfiles.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## SSLVPN / NetExtender Profiles");
-        sb.AppendLine();
-        sb.AppendLine("| # | Description | IP Pool | DNS 1 | DNS 2 | Domain | Client Routes |");
-        sb.AppendLine("|---|-------------|---------|-------|-------|--------|---------------|");
-        foreach (var nac in config.NacProfiles)
-        {
-            sb.AppendLine($"| {nac.Index} | {C(nac.Description)} | {C(nac.AddressObject)} | " +
-                          $"{C(nac.Dns1)} | {C(nac.Dns2)} | {C(nac.DomainName)} | {C(nac.ClientRoutes)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static void UnusedRulesSection(StringBuilder sb, SonicWallConfig config)
-    {
-        var unused = RuleAudit.UnusedRules(config.FirewallPolicies);
-
-        if (unused.Count == 0) return;
-
-        sb.AppendLine("---");
-        sb.AppendLine("## ⚠ Unused Custom Rules (Zero Hits)");
-        sb.AppendLine();
-        sb.AppendLine("These enabled custom rules have never matched any traffic and may be candidates for review. " +
-                      RuleAudit.HitCounterCaveat);
-        sb.AppendLine();
-        sb.AppendLine("| # | Action | Src Zone → Dst Zone | Source | Destination | Service | Comment |");
-        sb.AppendLine("|---|--------|---------------------|--------|-------------|---------|---------|");
-        foreach (var p in unused)
-        {
-            sb.AppendLine($"| {p.Index} | {C(p.ActionLabel)} | {C(p.SourceZone)} → {C(p.DestZone)} | " +
-                          $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | {C(p.Comment)} |");
-        }
-        sb.AppendLine();
-    }
-
-    private static string YN(bool val) => val ? "Yes" : "No";
-    private static string OrAny(string val) => string.IsNullOrEmpty(val) ? "Any" : ReportText.MdCell(val);
-    private static string OrNone(string val) => string.IsNullOrEmpty(val) ? "—" : ReportText.MdCell(val);
-
-    /// <summary>Escapes a value for a Markdown table cell (pipes and line breaks).</summary>
-    private static string C(string? val) => ReportText.MdCell(val);
+    private static string CellText(Cell c)
+        => c.Style == CellStyle.Checkbox ? "[ ]" : ReportText.MdCell(c.Text);
 }
