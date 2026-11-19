@@ -39,7 +39,12 @@ public class SonicWallConfig
     public List<NacProfile> NacProfiles { get; set; } = [];
     public List<FirmwareHistory> FirmwareHistory { get; set; } = [];
 
+    /// <summary>The key-value settings with secret keys removed. Used internally and never written to JSON.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public Dictionary<string, string> RawSettings { get; set; } = [];
+
+    /// <summary>Source line number per key. Never written to JSON.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public Dictionary<string, int> RawSettingLineNumbers { get; set; } = [];
     public List<ParseDiagnostic> Diagnostics { get; set; } = [];
     public List<UnknownSection> UnknownSections { get; set; } = [];

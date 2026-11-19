@@ -34,6 +34,7 @@ public static class ReportBuilder
             Subtitle = $"{g.ProductName}  |  Firmware {g.BuildNumber}  |  {g.Firmware.Description}",
         };
         doc.Meta.Add($"Report Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        doc.Meta.Add($"Parser version: {SonicWallParser.Reporting.ParserInfo.Version}");
 
         var sections = doc.Sections;
         sections.Add(DeviceInfo(config));
