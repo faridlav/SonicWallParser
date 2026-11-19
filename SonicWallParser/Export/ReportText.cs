@@ -23,6 +23,10 @@ public static class ReportText
     public static string Utc(DateTime value)
         => value == DateTime.MinValue ? "Never" : value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss") + " UTC";
 
+    /// <summary>Warnings and errors from parsing and extraction. Informational notes are excluded.</summary>
+    public static List<ParseDiagnostic> Warnings(SonicWallConfig config)
+        => config.Diagnostics.Where(d => d.Severity != ParseSeverity.Info).ToList();
+
     /// <summary>One line stating how many IPv4 rules are custom, auto-generated and built-in defaults.</summary>
     public static string RuleOriginSummary(SonicWallConfig config)
     {

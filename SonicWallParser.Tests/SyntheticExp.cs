@@ -130,15 +130,15 @@ public sealed class SyntheticExp
             .Set("ipsecAHKey_0", FakeSecret);
 
     /// <summary>A small but complete 6.x configuration: every core section has content.</summary>
-    public static SyntheticExp MinimalV6()
-        => V6().Zone(0, "LAN").Zone(1, "WAN", 0)
+    public static SyntheticExp MinimalV6(string build = "6.5.4.15-117n")
+        => V6(build).Zone(0, "LAN").Zone(1, "WAN", 0)
             .Interface(0, "X0", "LAN").Interface(1, "X1", "WAN", "198.51.100.2")
             .Address(0, "Corp LAN", "192.0.2.0").Address(1, "Web Server", "192.0.2.10")
             .CustomRule(0).DhcpScope();
 
     /// <summary>A small but complete 7.x configuration: every core section has content.</summary>
-    public static SyntheticExp MinimalV7()
-        => V7().Zone(0, "LAN").Zone(1, "WAN", 0)
+    public static SyntheticExp MinimalV7(string build = "7.1.2-7019-R6288")
+        => V7(build).Zone(0, "LAN").Zone(1, "WAN", 0)
             .Interface(0, "X0", "LAN").Interface(1, "X1", "WAN", "198.51.100.2")
             .Address(0, "Corp LAN", "192.0.2.0").Address(1, "Web Server", "192.0.2.10")
             .CustomRule(0).DhcpScope();

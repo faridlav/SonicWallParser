@@ -16,14 +16,6 @@ TaskScheduler.UnobservedTaskException += (_, e) =>
     e.SetObserved();
 };
 
-using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-    Console.WriteLine("\n⚠ Cancellation requested — finishing current operation...");
-};
-
 QuestPDF.Settings.License = LicenseType.Community;
 
 return Run(args);
@@ -60,10 +52,18 @@ static int Run(string[] args)
     Console.WriteLine($"  → {kv.Count:N0} key-value pairs extracted");
     Console.WriteLine();
 
+    var firmware = FirmwareVersion.Parse(kv.GetValueOrDefault("buildNum"));
+    if (firmware.Support == FirmwareSupport.Unsupported)
+    {
+        Console.Error.WriteLine($"✗ Unsupported firmware: {firmware.UnsupportedMessage}");
+        return ExitCodes.UnsupportedVersion;
+    }
+
     Console.WriteLine("Extracting configuration tables...");
     var config = TableExtractor.Extract(settings);
     Console.WriteLine();
     PrintSummary(config);
+    PrintWarnings(config);
 
     try
     {
@@ -139,13 +139,30 @@ static void PrintUsage()
     Console.WriteLine("  2    Parse error (bad format, corrupt data)");
     Console.WriteLine("  3    I/O error (permissions, disk full)");
     Console.WriteLine("  4    Export error (one or more exports failed)");
+    Console.WriteLine("  5    Unsupported SonicOS version (outside 6.x to 8.x), no report produced");
     Console.WriteLine("  99   Unhandled fatal exception");
+}
+
+static void PrintWarnings(SonicWallConfig config)
+{
+    var empty = config.Diagnostics.Where(d => d.Section == TableExtractor.CoverageSection).ToList();
+    if (empty.Count > 0)
+    {
+        Console.Error.WriteLine();
+        Console.Error.WriteLine("  !!! WARNING: CORE SECTION(S) CAME BACK EMPTY. THE REPORT IS INCOMPLETE. !!!");
+        foreach (var d in empty)
+            Console.Error.WriteLine($"  ⚠ {d.Message}");
+    }
+
+    foreach (var d in config.Diagnostics.Where(d => d.Severity != ParseSeverity.Info && d.Section != TableExtractor.CoverageSection))
+        Console.Error.WriteLine($"  ⚠ {d.Section}: {d.Message}");
 }
 
 static void PrintSummary(SonicWallConfig config)
 {
     Console.WriteLine($"  Device:  {config.Global.ProductName} (firmware {config.Global.BuildNumber})");
     Console.WriteLine($"  Serial:  {config.Global.SerialNumber}");
+    Console.WriteLine($"  Generation: {config.Global.Firmware.Description}");
 
     if (!string.IsNullOrEmpty(config.Global.PreviousProduct))
         Console.WriteLine($"  Migrated from: {config.Global.PreviousProduct} ({config.Global.PreviousBuild})");
@@ -194,5 +211,6 @@ static class ExitCodes
     public const int ParseError = 2;
     public const int IoError = 3;
     public const int ExportError = 4;
+    public const int UnsupportedVersion = 5;
     public const int Fatal = 99;
 }

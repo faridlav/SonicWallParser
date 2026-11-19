@@ -38,6 +38,16 @@ public static class PdfExporter
                 {
                     col.Spacing(12);
 
+                    var warnings = ReportText.Warnings(config);
+                    if (warnings.Count > 0)
+                    {
+                        col.Item().Element(c => SectionTitle(c, "⚠ Parser Warnings"));
+                        foreach (var d in warnings.Take(40))
+                            col.Item().Text($"{d.Severity} ({d.Section}): {d.Message}").FontSize(7).FontColor("#B91C1C");
+                        if (warnings.Count > 40)
+                            col.Item().Text($"{warnings.Count - 40} further warning(s) not shown.").FontSize(7).Italic();
+                    }
+
                     if (config.FirmwareHistory.Count > 0 || !string.IsNullOrEmpty(config.Global.PreviousProduct))
                     {
                         col.Item().Element(c => SectionTitle(c, "Device & Firmware History"));
@@ -197,7 +207,8 @@ public static class PdfExporter
         container.PaddingBottom(10).Column(col =>
         {
             col.Item().Text("SonicWall Configuration Report").FontSize(16).Bold().FontColor(HdrBg);
-            col.Item().Text($"{config.Global.ProductName}  •  Firmware {config.Global.BuildNumber}  •  " +
+            col.Item().Text($"{config.Global.ProductName}  •  Firmware {config.Global.BuildNumber} " +
+                            $"[{config.Global.Firmware.Description}]  •  " +
                             $"Serial {config.Global.SerialNumber}  •  " +
                             $"Generated {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC")
                 .FontSize(8).FontColor("#666666");

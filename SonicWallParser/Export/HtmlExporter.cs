@@ -278,6 +278,7 @@ tr:hover td { background: var(--bg3); }
         sb.AppendLine("<div class=\"info-grid\">");
         InfoItem(sb, "Product", config.Global.ProductName);
         InfoItem(sb, "Firmware", config.Global.BuildNumber);
+        InfoItem(sb, "Firmware Generation", config.Global.Firmware.Description);
         InfoItem(sb, "Serial Number", config.Global.SerialNumber);
         InfoItem(sb, "Locale", config.Global.Locale);
         InfoItem(sb, "CLI Idle Timeout", $"{config.Global.CliIdleTimeout}s");

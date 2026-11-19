@@ -114,12 +114,64 @@ public sealed class TableExtractor
                 "No passwords, shared secrets, TOTP data or VPN keys are included in any report.");
         }
 
+        CheckFirmware(config.Global.Firmware);
+        CheckCoreSections(config);
+
         config.UnknownSections = ExtractUnknownSections();
         ReportUnknownSections(config.UnknownSections);
 
         config.RawSettingLineNumbers = _lineNumbers;
         config.Diagnostics = [.. _diagnostics];
         return config;
+    }
+
+    /// <summary>Adds a diagnostic for a generation that is unverified, unknown or out of range.</summary>
+    private void CheckFirmware(FirmwareVersion firmware)
+    {
+        switch (firmware.Support)
+        {
+            case FirmwareSupport.Unverified:
+                AddDiagnostic(ParseSeverity.Warning, "Firmware",
+                    $"{firmware.Generation} is accepted but unverified: no real export of this generation has been tested, " +
+                    "so some settings may be missing or mislabelled.");
+                break;
+            case FirmwareSupport.Unsupported:
+                AddDiagnostic(ParseSeverity.Error, "Firmware", firmware.UnsupportedMessage);
+                break;
+            case FirmwareSupport.Unknown:
+                AddDiagnostic(ParseSeverity.Warning, "Firmware",
+                    "The firmware generation could not be determined from buildNum, so the report may be incomplete.");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// A core section that comes back empty almost always means the keys were not recognised, not that
+    /// the device really has none. Say so loudly instead of showing a quiet zero.
+    /// </summary>
+    private void CheckCoreSections(SonicWallConfig config)
+    {
+        foreach (var (name, count) in CoreSectionCounts(config))
+        {
+            if (count > 0)
+                continue;
+
+            AddDiagnostic(ParseSeverity.Warning, CoverageSection,
+                $"Core section '{name}' is EMPTY. A working device always has entries here, so the export format " +
+                "may not be recognised or its keys may have changed. The report is incomplete.");
+        }
+    }
+
+    /// <summary>Diagnostic section name used for the empty-core-section warnings.</summary>
+    public const string CoverageSection = "Coverage";
+
+    /// <summary>The core sections every real device has, with their item counts.</summary>
+    public static IEnumerable<(string Name, int Count)> CoreSectionCounts(SonicWallConfig config)
+    {
+        yield return ("Firewall rules (IPv4)", config.FirewallPolicies.Count);
+        yield return ("Zones", config.Zones.Count);
+        yield return ("Interfaces", config.Interfaces.Count);
+        yield return ("Address objects", config.AddressObjects.Count);
     }
 
     private void ReportUnknownSections(List<UnknownSection> unknown)
@@ -157,6 +209,7 @@ public sealed class TableExtractor
         return new GlobalSettings
         {
             BuildNumber = Get("buildNum"),
+            Firmware = FirmwareVersion.Parse(Get("buildNum")),
             ProductName = Get("shortProdName"),
             Locale = Get("localeVersionStr"),
             SerialNumber = Get("serialNumber"),

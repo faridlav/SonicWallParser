@@ -17,6 +17,7 @@ public static class MarkdownExporter
         var sb = new StringBuilder(32_000);
 
         Header(sb, config);
+        WarningsSection(sb, config);
         DeviceHistory(sb, config);
         ZonesSection(sb, config);
         InterfacesSection(sb, config);
@@ -49,9 +50,25 @@ public static class MarkdownExporter
         sb.AppendLine();
         sb.AppendLine($"- **Product:** {config.Global.ProductName}");
         sb.AppendLine($"- **Firmware:** {config.Global.BuildNumber}");
+        sb.AppendLine($"- **Firmware generation:** {config.Global.Firmware.Description}");
         sb.AppendLine($"- **Serial:** {config.Global.SerialNumber}");
         sb.AppendLine($"- **Locale:** {config.Global.Locale}");
         sb.AppendLine($"- **Report Generated:** {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine();
+    }
+
+    private static void WarningsSection(StringBuilder sb, SonicWallConfig config)
+    {
+        var warnings = ReportText.Warnings(config);
+        if (warnings.Count == 0) return;
+
+        sb.AppendLine("## ⚠ Parser Warnings");
+        sb.AppendLine();
+        foreach (var d in warnings)
+        {
+            var where = d.Location.Length > 0 ? $", line {d.Location}" : string.Empty;
+            sb.AppendLine($"- **{d.Severity}** ({ReportText.MdCell(d.Section)}{where}): {ReportText.MdCell(d.Message)}");
+        }
         sb.AppendLine();
     }
 
