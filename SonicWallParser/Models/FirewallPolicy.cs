@@ -57,10 +57,8 @@ public class FirewallPolicy
     public DateTime TimeLastHit { get; set; }
 
     /// <summary>
-    /// Returns a human-readable label for the firewall action (Allow, Deny, or Discard).
+    /// Label for the action. Value 0 is shown as "Deny (0)" and is unverified; value 1 has never been seen and
+    /// shows as Unknown(1). See <see cref="PolicyActions"/>.
     /// </summary>
-    public string ActionLabel => Action switch
-    {
-        2 => "Allow", 1 => "Deny", 0 => "Discard", _ => $"Unknown({Action})"
-    };
+    public string ActionLabel => PolicyActions.Label(Action);
 }

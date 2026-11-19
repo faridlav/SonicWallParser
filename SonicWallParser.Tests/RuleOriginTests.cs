@@ -175,6 +175,30 @@ public class RuleOriginTests
     public void ActionLabel_FollowsTheConfirmedAndUnverifiedMapping(int action, string label)
         => Assert.Equal(label, PolicyActions.Label(action));
 
+    [Theory]
+    [InlineData(2, "Allow")]
+    [InlineData(0, "Deny (0)")]
+    [InlineData(1, "Unknown(1)")]
+    public void RuleModels_UseTheSharedActionLabel(int action, string label)
+    {
+        Assert.Equal(label, new FirewallPolicy { Action = action }.ActionLabel);
+        Assert.Equal(label, new FirewallPolicyV6 { Action = action }.ActionLabel);
+    }
+
+    [Fact]
+    public void RenderedRuleTables_NeverShowTheOldDiscardOrGuessedDenyLabels()
+    {
+        var exp = SyntheticExp.MinimalV7().Rule(1, "WAN", "LAN", name: "Default Access Rule", defaultRule: 2, action: 0)
+            .Rule(2, "LAN", "WAN", name: "Odd", action: 1);
+
+        var md = MarkdownExporter.Generate(TableExtractor.Extract(exp.Values));
+
+        Assert.DoesNotContain("Discard", md);
+        Assert.Contains("| Deny (0) |", md);
+        Assert.Contains("| Unknown(1) |", md);
+        Assert.DoesNotContain("| Deny |", md);
+    }
+
     [Fact]
     public void Reports_FlagTheUnverifiedActionValue()
     {
