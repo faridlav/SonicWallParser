@@ -43,6 +43,7 @@ public static class SecretKeyFilter
         new(@"secr(e?t)?$", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"crypt(pass|totpkey)$", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"totp", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+        new(@"community", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"(psk|sharedkey|presharedkey|privatekey|privkey)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"^ipsec(esp|ah)\w*key", RegexOptions.IgnoreCase | RegexOptions.Compiled),
         new(@"^adminObjCrypt", RegexOptions.IgnoreCase | RegexOptions.Compiled),

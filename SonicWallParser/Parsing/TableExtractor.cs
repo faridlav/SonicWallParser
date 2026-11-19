@@ -72,11 +72,14 @@ public sealed class TableExtractor
         var config = new SonicWallConfig
         {
             Global = ExtractGlobalSettings(),
+            Device = SafeExtractOne("Device settings", ExtractDeviceSettings),
             RawSettings = _kv,
 
             Zones = SafeExtract("Zones", ExtractZones),
             Interfaces = SafeExtract("Interfaces", ExtractInterfaces),
             AddressObjects = SafeExtract("Address Objects", ExtractAddressObjects),
+            AddressObjectsV6 = SafeExtract("Address Objects (IPv6)", ExtractAddressObjectsV6),
+            MacAddressObjects = SafeExtract("Address Objects (MAC)", ExtractMacAddressObjects),
             ServiceObjects = SafeExtract("Service Objects", ExtractServiceObjects),
             FirewallPolicies = SafeExtract("Firewall Policies (v4)", ExtractFirewallPolicies),
             FirewallPoliciesV6 = SafeExtract("Firewall Policies (v6)", ExtractFirewallPoliciesV6),
@@ -249,6 +252,57 @@ public sealed class TableExtractor
         return list;
     }
 
+    private List<AddressObject> ExtractAddressObjectsV6()
+    {
+        var indexes = Indexes("addrObjV6Id_");
+        var list = new List<AddressObject>(indexes.Count);
+
+        foreach (var i in indexes)
+        {
+            list.Add(new AddressObject
+            {
+                Index = i,
+                Family = "IPv6",
+                Name = Get($"addrObjV6Id_{i}"),
+                DisplayName = Get($"addrObjV6IdDisp_{i}"),
+                Type = GetInt($"addrObjV6Type_{i}"),
+                Zone = Get($"addrObjV6Zone_{i}"),
+                Ip1 = Get($"addrObjV6Ip1_{i}"),
+                Ip2 = Get($"addrObjV6Ip2_{i}"),
+                PrefixLength = GetInt($"addrObjV6PrefixLen_{i}"),
+                Properties = GetInt($"addrObjV6Properties_{i}"),
+                TimeCreated = GetUnixTime($"addrObjV6TimeCreated_{i}"),
+                TimeUpdated = GetUnixTime($"addrObjV6TimeUpdated_{i}"),
+            });
+        }
+
+        return list;
+    }
+
+    private List<AddressObject> ExtractMacAddressObjects()
+    {
+        var indexes = Indexes("addrObjMacId_");
+        var list = new List<AddressObject>(indexes.Count);
+
+        foreach (var i in indexes)
+        {
+            list.Add(new AddressObject
+            {
+                Index = i,
+                Family = "MAC",
+                Name = Get($"addrObjMacId_{i}"),
+                Type = GetInt($"addrObjMacType_{i}"),
+                Zone = Get($"addrObjMacZone_{i}"),
+                Ip1 = Get($"addrObjMac_{i}"),
+                Properties = GetInt($"addrObjMacProperties_{i}"),
+                TimeCreated = GetUnixTime($"addrObjMacTimeCreated_{i}"),
+                TimeUpdated = GetUnixTime($"addrObjMacTimeUpdated_{i}"),
+            });
+        }
+
+        return list;
+    }
+
     private List<ServiceObject> ExtractServiceObjects()
     {
         var indexes = Indexes("svcObjId_");
@@ -295,6 +349,20 @@ public sealed class TableExtractor
                 Name = Get($"policyName_{i}"),
                 Enabled = GetBool($"policyEnabled_{i}"),
                 Logging = GetBool($"policyLog_{i}"),
+                Schedule = Get($"policyTime_{i}"),
+                Users = Get($"policyWhom_{i}"),
+                UsersExcluded = Get($"policyWhomExcl_{i}"),
+                GeoIpBlock = GetBool($"policyGeoIpBlock_{i}"),
+                BotnetBlock = GetBool($"policyBotnetBlock_{i}"),
+                ConnLimitSourceEnabled = GetBool($"policyConnLmtSrcEnb_{i}"),
+                ConnLimitSourceThreshold = GetInt($"policyConnLmtSrcThrhld_{i}"),
+                ConnLimitDestEnabled = GetBool($"policyConnLmtDstEnb_{i}"),
+                ConnLimitDestThreshold = GetInt($"policyConnLmtDstThrhld_{i}"),
+                ConnPercent = GetInt($"policyConnPercent_{i}"),
+                BwmIngressEnabled = GetBool($"policyBwmIgrsEnable_{i}"),
+                BwmIngressObject = Get($"policyBwmIgrsObj_{i}"),
+                BwmEgressEnabled = GetBool($"policyBwmEgrsEnable_{i}"),
+                BwmEgressObject = Get($"policyBwmEgrsObj_{i}"),
                 DefaultRuleFlag = GetInt($"policyDefaultRule_{i}"),
                 Priority = GetInt($"policyPriority_{i}"),
                 HitCount = GetLong($"policyHitCount_{i}"),
@@ -330,6 +398,7 @@ public sealed class TableExtractor
                 Comment = Get($"policyCommentV6_{i}"),
                 Name = Get($"policyNameV6_{i}"),
                 Enabled = GetBool($"policyEnabledV6_{i}"),
+                Logging = GetBool($"policyLogV6_{i}"),
                 DefaultRuleFlag = GetInt($"policyDefaultRuleV6_{i}"),
                 Priority = GetInt($"policyPriorityV6_{i}"),
                 HitCount = GetLong($"policyHitCountV6_{i}"),
@@ -472,6 +541,9 @@ public sealed class TableExtractor
                 LinkAbilityOverride = GetLong($"eth_link_ability_override_{i}"),
                 FragPackets = GetBool($"eth_frag_packets_{i}"),
                 IgnoreDfBit = GetBool($"eth_ignore_df_bit_{i}"),
+                InterfaceTypeRaw = GetInt($"iface_type_{i}"),
+                DhcpClient = GetBool($"iface_dhcp_enable_{i}"),
+                PppoeTypeRaw = GetInt($"iface_pppoe_type_{i}"),
             });
         }
 
@@ -489,6 +561,14 @@ public sealed class TableExtractor
             {
                 Index = i,
                 PolicyType = GetInt($"vpnPolicyType_{i}"),
+                Name = Get($"ipsecName_{i}"),
+                PeerGateway = Get($"ipsecGwAddr_{i}"),
+                SecondaryGateway = Get($"ipsecSecGwAddr_{i}"),
+                SaDisabled = GetNullableBool($"ipsecSaDisabled_{i}"),
+                IkeVersionRaw = GetInt($"ipsecVersion_{i}"),
+                KeepAlive = GetBool($"ipsecKeepAlive_{i}"),
+                XauthClient = GetBool($"ipsecXauthClient_{i}"),
+                TransportMode = GetBool($"ipsecUseTransportMode_{i}"),
 
                 P1Exchange = GetInt($"ipsecP1Exch_{i}"),
                 P1DhGroup = GetInt($"ipsecP1DHGrp_{i}"),
@@ -613,6 +693,8 @@ public sealed class TableExtractor
                 StartMinute = GetInt($"schedObjStartMinute_{i}"),
                 EndHour = GetInt($"schedObjEndHour_{i}"),
                 EndMinute = GetInt($"schedObjEndMinute_{i}"),
+                TimeBegin = GetLong($"schedObjTimeBegin_{i}"),
+                TimeEnd = GetLong($"schedObjTimeEnd_{i}"),
                 TimeCreated = GetUnixTime($"schedObjTimeCreated_{i}"),
                 TimeUpdated = GetUnixTime($"schedObjTimeUpdated_{i}"),
             });
@@ -805,6 +887,106 @@ public sealed class TableExtractor
 
     private int GetInt(string key)
         => TryRead(key, out var val) && int.TryParse(val, out var n) ? n : 0;
+
+    private bool? GetNullableBool(string key)
+    {
+        if (!TryRead(key, out var val) || string.IsNullOrWhiteSpace(val))
+            return null;
+
+        return val == "1" || val.Equals("on", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string? GetNullableString(string key)
+        => TryRead(key, out var val) && !string.IsNullOrWhiteSpace(val) ? val : null;
+
+    private T SafeExtractOne<T>(string sectionName, Func<T> extractor) where T : new()
+    {
+        try
+        {
+            return extractor();
+        }
+        catch (Exception ex)
+        {
+            AddDiagnostic(ParseSeverity.Error, sectionName, $"Failed to extract section: {ex.Message}");
+            return new T();
+        }
+    }
+
+    private DeviceSettings ExtractDeviceSettings()
+    {
+        var device = new DeviceSettings
+        {
+            SnmpEnabled = GetNullableBool("snmp_Enable"),
+            Management = new ManagementSettings
+            {
+                AdminLoginTimeout = GetNullableInt("adminLoginTimeout"),
+                LoginLockoutEnabled = GetNullableBool("loginFailLockoutEnable"),
+                AccountLockoutEnabled = GetNullableBool("loginFailAcctLockoutEnable"),
+                LoginFailMaxRate = GetNullableInt("loginFailMaxRate"),
+                LoginLockoutTime = GetNullableInt("loginFailLockoutTime"),
+                AdminOtpRequired = Get("adminOtpReq"),
+                PasswordComplexity = Get("passwordComplexity"),
+                MinPasswordLength = GetNullableInt("minPasswordLength"),
+                PasswordUpdatePeriod = GetNullableInt("passwordUpdtPeriod"),
+                CliIdleTimeout = GetNullableInt("cli_idleTimeout"),
+                ApiEnabled = GetNullableBool("sonicOsApi_enable"),
+                ApiCors = GetNullableBool("sonicOsApi_CORS"),
+                ApiBasicAuth = GetNullableBool("sonicOsApi_basicAuth"),
+                ApiDigestAuth = GetNullableBool("sonicOsApi_dgstAuth"),
+                ApiPublicKeyAuth = GetNullableBool("sonicOsApi_pubKeyAuth"),
+                ApiBearerToken = GetNullableBool("sonicOsApi_bearerTokenEnable"),
+            },
+            Time = new TimeSettings
+            {
+                NtpEnabled = GetNullableBool("ntp_useNtp"),
+                UseDst = GetNullableBool("ntp_useDst"),
+                NtpUpdateInterval = GetNullableInt("ntp_updateInterval"),
+                OnlyCustomNtpServers = GetNullableBool("ntp_onlyUseCustomServer"),
+                TimeZoneRaw = Get("timezone"),
+            },
+            Syslog = new SyslogSettings
+            {
+                Server = Get("syslogServerName"),
+                Port = GetNullableInt("syslogServerPort"),
+                StandbyServer = Get("syslogStandbyServerName"),
+                StandbyPort = GetNullableInt("syslogStandbyServerPort"),
+            },
+            SslVpn = new SslVpnSettings
+            {
+                Present = _kv.ContainsKey("sslvpnSvcPort") || _kv.ContainsKey("SslvpnsPPPStartIp"),
+                Port = GetNullableInt("sslvpnSvcPort"),
+                CertificateName = Get("sslvpnCertName"),
+                AuthTypeRaw = Get("sslvpnAuthType"),
+                PoolStart = Get("SslvpnsPPPStartIp"),
+                PoolEnd = Get("SslvpnsPPPEndIp"),
+                Dns1 = Get("SslvpnsDnsServer1"),
+                Dns2 = Get("SslvpnsDnsServer2"),
+                SessionTimeout = GetNullableInt("SslvpnsSessionTimeout"),
+                SessionSourceIpCheck = GetNullableBool("sslvpnSessionSrcIPCheck"),
+                WebManagement = GetNullableBool("sslvpnWebMgmt"),
+                SshManagement = GetNullableBool("sslvpnSshMgmt"),
+                UserDomain = Get("sslvpnUserDomain"),
+            },
+        };
+
+        foreach (var i in Indexes("ceSvcId_"))
+        {
+            var raw = Get($"ceSvcExpiration_{i}");
+            device.Licenses.Add(new ServiceLicense
+            {
+                Index = i,
+                Id = Get($"ceSvcId_{i}"),
+                Activated = GetBool($"ceSvcIsActivated_{i}"),
+                Count = GetInt($"ceSvcLicenseCount_{i}"),
+                ExpirationRaw = raw,
+                Expiration = long.TryParse(raw, out var epoch) && epoch > 1_000_000_000 && epoch < 4_000_000_000
+                    ? DateTimeOffset.FromUnixTimeSeconds(epoch).UtcDateTime
+                    : null,
+            });
+        }
+
+        return device;
+    }
 
     private int? GetNullableInt(string key)
         => TryRead(key, out var val) && int.TryParse(val, out var n) ? n : null;

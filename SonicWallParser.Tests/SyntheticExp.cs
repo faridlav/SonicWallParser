@@ -108,6 +108,69 @@ public sealed class SyntheticExp
             .Set($"prefs_dhdynscopeactive_{i}", "on")
             .Set($"prefs_dhdynbootp_{i}", "off");
 
+    /// <summary>Adds a schedule object using the real key names.</summary>
+    public SyntheticExp Schedule(int i, string name, int type, long days, long begin = 0, long end = 0, long created = 1627486911)
+        => Set($"schedObjId_{i}", name)
+            .Set($"schedObjType_{i}", type.ToString())
+            .Set($"schedObjDaysOfWeek_{i}", days.ToString())
+            .Set($"schedObjTimeBegin_{i}", begin.ToString())
+            .Set($"schedObjTimeEnd_{i}", end.ToString())
+            .Set($"schedObjTimeCreated_{i}", created.ToString());
+
+    /// <summary>Adds a service object (type 1) with a protocol number and port range.</summary>
+    public SyntheticExp Service(int i, string name, int ipType, int port1, int port2, long created = 1700000000 + 7)
+        => Set($"svcObjId_{i}", name)
+            .Set($"svcObjType_{i}", "1")
+            .Set($"svcObjIpType_{i}", ipType.ToString())
+            .Set($"svcObjPort1_{i}", port1.ToString())
+            .Set($"svcObjPort2_{i}", port2.ToString())
+            .Set($"svcObjTimeCreated_{i}", (created + i).ToString());
+
+    /// <summary>Adds a service group object entry (type 2) so the group exists as an object.</summary>
+    public SyntheticExp ServiceGroupObject(int i, string name)
+        => Set($"svcObjId_{i}", name).Set($"svcObjType_{i}", "2").Set($"svcObjTimeCreated_{i}", (1700000100 + i).ToString());
+
+    /// <summary>Adds an address group object entry (type 8) so the group exists as an object.</summary>
+    public SyntheticExp AddressGroupObject(int i, string name)
+        => Set($"addrObjId_{i}", name).Set($"addrObjType_{i}", "8").Set($"addrObjTimeCreated_{i}", (1700000200 + i).ToString());
+
+    /// <summary>Adds membership rows for an address group (the member may itself be a group).</summary>
+    public SyntheticExp AddressGroup(string group, params string[] members)
+        => Membership("addro_atomToGrp_", "addro_grpToGrp_", group, members);
+
+    /// <summary>Adds membership rows for a service group.</summary>
+    public SyntheticExp ServiceGroup(string group, params string[] members)
+        => Membership("so_atomToGrp_", "so_grpToGrp_", group, members);
+
+    private SyntheticExp Membership(string memberPrefix, string groupPrefix, string group, string[] members)
+    {
+        foreach (var member in members)
+        {
+            var next = _kv.Keys.Count(k => k.StartsWith(memberPrefix, StringComparison.Ordinal));
+            Set($"{memberPrefix}{next}", member).Set($"{groupPrefix}{next}", group);
+        }
+
+        return this;
+    }
+
+    /// <summary>Adds an IPv4 NAT policy.</summary>
+    public SyntheticExp Nat(int i, string origSrc = "", string origDst = "", string origSvc = "", string transSrc = "",
+        string transDst = "", string transSvc = "", bool enabled = true, string comment = "")
+        => Set($"natPolicyOrigSrc_{i}", origSrc).Set($"natPolicyOrigDst_{i}", origDst).Set($"natPolicyOrigSvc_{i}", origSvc)
+            .Set($"natPolicyTransSrc_{i}", transSrc).Set($"natPolicyTransDst_{i}", transDst).Set($"natPolicyTransSvc_{i}", transSvc)
+            .Set($"natPolicyEnabled_{i}", enabled ? "1" : "0").Set($"natPolicyComment_{i}", comment);
+
+    /// <summary>Adds a site-to-site VPN policy with the real key names. Values are raw SonicOS numbers.</summary>
+    public SyntheticExp Vpn(int i, string name, string gateway = "203.0.113.10", string saDisabled = "off",
+        int exchange = 2, int dh = 2, int enc = 6, int auth = 2, bool pfs = false, string local = "", string remote = "")
+        => Set($"vpnPolicyType_{i}", "0").Set($"ipsecName_{i}", name).Set($"ipsecGwAddr_{i}", gateway)
+            .Set($"ipsecSaDisabled_{i}", saDisabled).Set($"ipsecP1Exch_{i}", exchange.ToString())
+            .Set($"ipsecP1DHGrp_{i}", dh.ToString()).Set($"ipsecP2DHGrp_{i}", dh.ToString())
+            .Set($"ipsecPh1CryptAlg_{i}", enc.ToString()).Set($"ipsecPh2CryptAlg_{i}", enc.ToString())
+            .Set($"ipsecPh1AuthAlg_{i}", auth.ToString()).Set($"ipsecPh2AuthAlg_{i}", auth.ToString())
+            .Set($"ipsecPFSEnablePFS_{i}", pfs ? "on" : "off")
+            .Set($"ipsecLocalNetwork_{i}", local).Set($"ipsecRemoteNetwork_{i}", remote);
+
     /// <summary>Adds a user plus secret-bearing keys carrying <see cref="FakeSecret"/>.</summary>
     public SyntheticExp UserWithSecrets(int i = 0)
         => Set($"userObjId_{i}", "alice.example")

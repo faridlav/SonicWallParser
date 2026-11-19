@@ -14,6 +14,7 @@ public class FirewallPolicyV6
     public string SourceSvc { get; set; } = string.Empty;
     public string DestSvc { get; set; } = string.Empty;
     public string Comment { get; set; } = string.Empty;
+    public bool Logging { get; set; }
     public string Name { get; set; } = string.Empty;
     public bool Enabled { get; set; }
     /// <summary>Raw <c>policyDefaultRule</c> value. A three-state flag, not a boolean: use <see cref="Origin"/>.</summary>

@@ -6,8 +6,11 @@ namespace SonicWallParser.Models;
 public class SonicWallConfig
 {
     public GlobalSettings Global { get; set; } = new();
+    public DeviceSettings Device { get; set; } = new();
 
     public List<AddressObject> AddressObjects { get; set; } = [];
+    public List<AddressObject> AddressObjectsV6 { get; set; } = [];
+    public List<AddressObject> MacAddressObjects { get; set; } = [];
     public List<ServiceObject> ServiceObjects { get; set; } = [];
     public List<FirewallPolicy> FirewallPolicies { get; set; } = [];
     public List<FirewallPolicyV6> FirewallPoliciesV6 { get; set; } = [];

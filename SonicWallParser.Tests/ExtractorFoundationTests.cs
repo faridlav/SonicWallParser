@@ -28,6 +28,8 @@ public class ExtractorFoundationTests
     [InlineData("ipsecAHKey_0")]
     [InlineData("someFutureSharedSecret_0")]
     [InlineData("vpnPresharedKey_0")]
+    [InlineData("snmp_Community_0")]
+    [InlineData("snmpCommunityString")]
     public void SecretKeyFilter_BlocksSecretKeys(string key)
         => Assert.True(SecretKeyFilter.IsSecret(key), key);
 
