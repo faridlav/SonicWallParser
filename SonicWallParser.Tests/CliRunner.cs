@@ -17,13 +17,13 @@ public static class CliRunner
     public static CliResult Run(string inputPath, string? outputDir = null)
     {
         outputDir ??= Path.Combine(Path.GetTempPath(), "swp-e2e", Guid.NewGuid().ToString("N"));
-        return RunRaw(inputPath, outputDir, outputDir);
+        return RunRaw(inputPath, outputDir);
     }
 
     /// <summary>Runs the CLI with explicit raw arguments.</summary>
     public static CliResult RunRaw(params string[] args)
     {
-        var outputDir = args.Length > 1 ? args[1] : string.Empty;
+        var outputDir = args.Length > 1 && !args[1].StartsWith('-') ? args[1] : string.Empty;
         var dll = Path.Combine(AppContext.BaseDirectory, "SonicWallParser.dll");
         var dotnet = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } host ? host : "dotnet";
 
@@ -37,7 +37,7 @@ public static class CliRunner
             StandardErrorEncoding = System.Text.Encoding.UTF8,
         };
         psi.ArgumentList.Add(dll);
-        foreach (var a in args.Take(args.Length > 1 ? 2 : args.Length))
+        foreach (var a in args)
             psi.ArgumentList.Add(a);
 
         using var process = Process.Start(psi)!;

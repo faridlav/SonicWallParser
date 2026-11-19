@@ -629,7 +629,8 @@ internal static class Checks
     private static IEnumerable<Finding> GuestAccounts(CheckContext c)
     {
         foreach (var u in c.Config.Users.Where(u => u.GuestEnabled))
-            yield return F("U001", Severity.Low, "Guest account enabled", $"User {u.Name} has guest services enabled.", $"User {u.Name}", $"user-{u.Index}");
+            yield return F("U001", Severity.Low, "Guest account enabled",
+                $"User {u.Name} has userObjGuestEnable on. The meaning of that flag is unverified.", $"User {u.Name}", $"user-{u.Index}", unverified: true);
     }
 
     private static readonly HashSet<string> GenericNames = new(StringComparer.OrdinalIgnoreCase)

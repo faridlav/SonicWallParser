@@ -428,6 +428,7 @@ public class FindingsTests
         Assert.Equal(["user-0", "user-2"], Of(r, "U002").Select(f => f.LinkTo).Order());
         Assert.Equal(Severity.Medium, Of(r, "U002").Single(f => f.LinkTo == "user-0").Severity);
         Assert.Equal(["user-2"], Of(r, "U001").Select(f => f.LinkTo));
+        Assert.All(Of(r, "U001"), f => Assert.True(f.UnverifiedBasis));
     }
 
     [Fact]
