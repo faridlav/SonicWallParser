@@ -67,7 +67,7 @@ public static class FindingsReport
 
         var clean = result.CleanCategories.ToList();
         if (clean.Count > 0)
-            s.Note($"No findings in: {string.Join(", ", clean)}.");
+            s.Note($"No findings in: {string.Join(", ", clean)}. That covers only the checks that had data: see Not assessed for those that did not.");
 
         if (result.Findings.Any(f => f.UnverifiedBasis))
             s.Warning("Some findings rest on value mappings that are not confirmed against the SonicOS UI. They are marked Unverified mapping in the Basis column.");

@@ -36,3 +36,67 @@ Decisions taken in Phase 1:
 Unverified at the end of Phase 1: action value 0 label, IKEv2 values, default site-to-site labels,
 zone IPS on 7.x, DHCP lease unit, link ability bits, indexed `prefsHistory*_N` keys.
 
+
+## Phase 2: coverage and analysis foundation (done)
+
+| Commit subject | Summary |
+|----------------|---------|
+| Extend extraction: rule options, VPN identity, schedules, device settings, IPv6 and MAC objects | New fields measured from key names on local samples; device settings with nullable flags; IPv6 and MAC address objects (were never extracted); SNMP community strings added to the secret deny-list |
+| Add name resolver, reference graph and object analysis | Nested group resolution (cycle safe), reference graph, unused, duplicate and dangling detection, built-in heuristic |
+| Build all reports from one shared model | Report model, builder and three renderers replace three hand-duplicated exporters; PDF moved to US Letter landscape with cover, contents and bookmarks |
+
+Decisions:
+
+- IPv6 and MAC objects go in separate lists so IPv4 object counts stay comparable to earlier runs.
+- Objects created in the same instant as 8 or more others of their kind are flagged "likely built-in": counted, never listed as cleanup candidates. This is a heuristic, labelled unverified. After adding IPv6 and MAC objects there were no dangling references on the local samples, which supports that the resolver sees every referenced name.
+- Schedule day mask: bit 0 is Sunday (inferred from the values 127, 62 and 65). Type 1 times are minutes since midnight. Type 2 patterns are shown as not decoded. All unverified.
+- No IKE version is derived from `ipsecVersion`. `ipsecSaDisabled` on is read as disabled, labelled unverified.
+- WAN addressing mode is derived only from confirmed keys (DHCP client flag, static address). PPPoE, L2TP and PPTP are not detected.
+
+## Phase 3: findings and migration (done)
+
+| Commit subject | Summary |
+|----------------|---------|
+| Add the security findings engine and findings page | 40 documented checks, not-assessed list, per-check skip and thresholds, generated docs/checks.md guarded by a test |
+| Add the platform-neutral migration checklist | Four phases plus do-not-migrate and differences sections, source flags and tick boxes |
+
+Decisions:
+
+- "Now" for age and expiry checks is the newest change time in the export, so output is deterministic.
+- Rule shadowing assumes evaluation by `policyPriority`. This is unconfirmed, so the finding is marked Unverified mapping.
+- Findings resting on unconfirmed mappings carry the Unverified mapping basis: aggressive mode, 3DES value 3, DH group 1, disabled VPN, admin OTP, guest accounts, shadowing.
+- Anything an export cannot show is listed under Not assessed rather than reported as a pass.
+
+## Phase 4: layout, CLI and polish (done, with gaps listed below)
+
+| Commit subject | Summary |
+|----------------|---------|
+| Fix: rule action labels now really use the shared mapping | Correction of a Phase 1 defect, see below |
+| Add the CLI feature set | ReportSet, formats, quiet, name, findings and migration switches, JSON, redaction, diff, batch |
+| (this commit) | README, CHANGELOG, anonymization guide, golden files, test step in the release workflow |
+
+## Corrections made during the work
+
+1. A Phase 1 commit message wrongly said the old serial came from a previous device. It was simply empty. The message was reworded.
+2. The findings commit message said 43 checks. There are 40. It was reworded.
+3. **Phase 1 defect:** the rule models still returned "Discard" and a guessed "Deny" label. The scripted edit that was meant to switch them to the shared unverified mapping matched nothing, and the Phase 1 test only exercised the mapping class, not the models. Fixed in its own commit with regression tests on the models and on rendered Markdown. Reports produced before that commit showed the old labels.
+
+## Verification performed
+
+- `dotnet build` and `dotnet test`: 347 tests pass (unit, integration, end to end through the real CLI process, golden files).
+- Each of the first Phase 2 commits was built and tested on its own in a throwaway worktree.
+- CLI run on the three local samples: every run exits 0, takes about a second, reports no empty core section, and the console, Markdown and HTML agree on the unused rule count. Real values were checked only by count in a scratch project outside the repository.
+- Secret scan: the real values of every secret-bearing key on the three samples were searched for in all generated outputs and the console. No leak.
+- Redaction scan on the three samples: none of the original IPv4 addresses and none of the serials appear in redacted output. The only name strings that remain are generic words that are part of the report's own labels (for example HTTP, Ping).
+- Markdown tables of the real reports were checked for consistent column counts.
+
+## Not verified or not done
+
+- The PDF output was not viewed. No rasteriser or viewer was available. It is verified structurally only: Letter media box, page counts, generation without error, bookmarks and contents code paths. A person should open the PDFs and check for cramped columns and near-empty pages.
+- The HTML output was not opened in a browser. Its CSS and script are the original ones, and the section and anchor structure is tested.
+- Baseline or policy comparison against a defined standard (checklist section 9, P3) is not implemented.
+- Topology diagram, sortable columns, sticky navigation and remembered open sections (checklist section 7, HTML) are not implemented.
+- Still unconfirmed in the SonicOS UI: action value 0, IKEv2 values, default site-to-site crypto values, zone IPS on 7.x, DHCP lease unit, schedule units and day order, link ability bits, `ipsecSaDisabled`, `userObjGuestEnable`, `adminOtpReq`, evaluation order.
+- Not read at all: routes, HA, wireless, certificates, per-rule security profiles, flood protection, admin privilege masks, the indexed `prefsHistory*_N` keys.
+- No real 8.x export has been tested.
+- The existing release workflow gained a test step. It was not run on GitHub.
