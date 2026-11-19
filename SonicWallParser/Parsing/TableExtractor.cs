@@ -158,7 +158,7 @@ public sealed class TableExtractor
             BuildNumber = Get("buildNum"),
             ProductName = Get("shortProdName"),
             Locale = Get("localeVersionStr"),
-            SerialNumber = Get("prefsHistorySerialNumber"),
+            SerialNumber = Get("serialNumber"),
             CliIdleTimeout = GetInt("cli_idleTimeout"),
             SonicOsApiEnabled = Get("sonicOsApi_enable") == "on",
             SonicOsApiCors = Get("sonicOsApi_CORS") == "on",
@@ -354,7 +354,8 @@ public sealed class TableExtractor
                 ZoneType = GetInt($"zoneObjZoneType_{i}"),
                 IntraZoneCommunication = GetBool($"zoneObjIntraZoneCom_{i}"),
                 GatewayAntivirus = GetInt($"zoneObjGavProfile_{i}") > 0,
-                IntrusionPrevention = GetInt($"zoneObjSecProfile_{i}") > 0,
+                IntrusionPrevention = GetNullableInt($"zoneObjSecProfile_{i}") is { } ips ? ips > 0 : null,
+                GuestServices = GetBool($"zoneObjEnableGuestServices_{i}"),
                 AppControl = GetInt($"zoneObjACProfile_{i}") > 0,
                 AntiSpyware = GetInt($"zoneObjASProfile_{i}") > 0,
                 DpiSslClient = GetInt($"zoneObjDPISSLCProfile_{i}") > 0,
@@ -407,7 +408,8 @@ public sealed class TableExtractor
                 BwmAmount = GetDouble($"eth_bwm_amount_{i}"),
                 NetflowEnabled = GetBool($"eth_enable_netflow_{i}"),
                 Mtu = GetInt($"eth_mtu_{i}"),
-                LinkSpeed = GetInt($"eth_link_speed_{i}"),
+                LinkAbility = GetLong($"eth_link_ability_{i}"),
+                LinkAbilityOverride = GetLong($"eth_link_ability_override_{i}"),
                 FragPackets = GetBool($"eth_frag_packets_{i}"),
                 IgnoreDfBit = GetBool($"eth_ignore_df_bit_{i}"),
             });
@@ -744,6 +746,9 @@ public sealed class TableExtractor
     private int GetInt(string key)
         => TryRead(key, out var val) && int.TryParse(val, out var n) ? n : 0;
 
+    private int? GetNullableInt(string key)
+        => TryRead(key, out var val) && int.TryParse(val, out var n) ? n : null;
+
     private long GetLong(string key)
         => TryRead(key, out var val) && long.TryParse(val, out var n) ? n : 0;
 
@@ -760,7 +765,7 @@ public sealed class TableExtractor
             epoch <= 0)
             return DateTime.MinValue;
 
-        return DateTimeOffset.FromUnixTimeSeconds(epoch).LocalDateTime;
+        return DateTimeOffset.FromUnixTimeSeconds(epoch).UtcDateTime;
     }
 
     /// <summary>

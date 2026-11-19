@@ -10,7 +10,11 @@ public class ZoneObject
     public int ZoneType { get; set; }
     public bool IntraZoneCommunication { get; set; }
     public bool GatewayAntivirus { get; set; }
-    public bool IntrusionPrevention { get; set; }
+    /// <summary>
+    /// Intrusion Prevention state. <c>null</c> means unknown: on SonicOS 7.x the old <c>zoneObjSecProfile</c>
+    /// key is absent and the new source is not confirmed yet, so it is never shown as off.
+    /// </summary>
+    public bool? IntrusionPrevention { get; set; }
     public bool AppControl { get; set; }
     public bool AntiSpyware { get; set; }
     public bool DpiSslClient { get; set; }

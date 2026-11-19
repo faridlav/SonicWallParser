@@ -197,7 +197,7 @@ public static class PdfExporter
             col.Item().Text("SonicWall Configuration Report").FontSize(16).Bold().FontColor(HdrBg);
             col.Item().Text($"{config.Global.ProductName}  •  Firmware {config.Global.BuildNumber}  •  " +
                             $"Serial {config.Global.SerialNumber}  •  " +
-                            $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}")
+                            $"Generated {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC")
                 .FontSize(8).FontColor("#666666");
             col.Item().PaddingTop(4).LineHorizontal(1).LineColor("#CCCCCC");
         });
@@ -281,7 +281,7 @@ public static class PdfExporter
                 table.Cell().Element(c => DC(c, z.Name, r)); table.Cell().Element(c => DC(c, z.ZoneTypeLabel, r));
                 table.Cell().Element(c => DC(c, YN(z.IntraZoneCommunication), r));
                 table.Cell().Element(c => DC(c, YN(z.GatewayAntivirus), r));
-                table.Cell().Element(c => DC(c, YN(z.IntrusionPrevention), r));
+                table.Cell().Element(c => DC(c, ReportText.YesNoUnknown(z.IntrusionPrevention), r));
                 table.Cell().Element(c => DC(c, YN(z.AppControl), r));
                 table.Cell().Element(c => DC(c, YN(z.AntiSpyware), r));
                 table.Cell().Element(c => DC(c, YN(z.DpiSslClient), r));

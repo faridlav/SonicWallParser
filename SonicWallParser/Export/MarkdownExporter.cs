@@ -50,7 +50,7 @@ public static class MarkdownExporter
         sb.AppendLine($"- **Firmware:** {config.Global.BuildNumber}");
         sb.AppendLine($"- **Serial:** {config.Global.SerialNumber}");
         sb.AppendLine($"- **Locale:** {config.Global.Locale}");
-        sb.AppendLine($"- **Report Generated:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($"- **Report Generated:** {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine();
     }
 
@@ -93,7 +93,7 @@ public static class MarkdownExporter
         foreach (var z in config.Zones)
         {
             sb.AppendLine($"| {z.Name} | {z.ZoneTypeLabel} | {YN(z.IntraZoneCommunication)} | " +
-                          $"{YN(z.GatewayAntivirus)} | {YN(z.IntrusionPrevention)} | " +
+                          $"{YN(z.GatewayAntivirus)} | {ReportText.YesNoUnknown(z.IntrusionPrevention)} | " +
                           $"{YN(z.AppControl)} | {YN(z.AntiSpyware)} | {YN(z.DpiSslClient)} | " +
                           $"{YN(z.ContentFilter)} |");
         }

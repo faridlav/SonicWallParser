@@ -241,7 +241,7 @@ tr:hover td { background: var(--bg3); }
     {
         sb.AppendLine("<div class=\"toolbar\">");
         sb.AppendLine($"  <h1>SonicWall Configuration Report</h1>");
-        sb.AppendLine($"  <span class=\"meta\">{E(config.Global.ProductName)} &bull; {E(config.Global.BuildNumber)} &bull; {DateTime.Now:yyyy-MM-dd HH:mm}</span>");
+        sb.AppendLine($"  <span class=\"meta\">{E(config.Global.ProductName)} &bull; {E(config.Global.BuildNumber)} &bull; {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC</span>");
         sb.AppendLine("  <input type=\"search\" id=\"globalSearch\" placeholder=\"Filter tables...\" autocomplete=\"off\">");
         sb.AppendLine("  <button class=\"theme-toggle\" onclick=\"toggleTheme()\" title=\"Toggle dark/light mode\">&#9681;</button>");
         sb.AppendLine("</div>");
@@ -329,7 +329,7 @@ tr:hover td { background: var(--bg3); }
         OpenSection(sb, "sec-zones", "Zones", config.Zones.Count);
         sb.AppendLine("<table><thead><tr><th>Zone</th><th>Type</th><th>Intra-Zone</th><th>GAV</th><th>IPS</th><th>App Ctrl</th><th>Anti-Spy</th><th>DPI-SSL</th><th>CFS</th><th>Guest</th></tr></thead><tbody>");
         foreach (var z in config.Zones)
-            sb.AppendLine($"<tr><td><strong>{E(z.Name)}</strong></td><td>{E(z.ZoneTypeLabel)}</td><td>{Tag(z.IntraZoneCommunication)}</td><td>{Tag(z.GatewayAntivirus)}</td><td>{Tag(z.IntrusionPrevention)}</td><td>{Tag(z.AppControl)}</td><td>{Tag(z.AntiSpyware)}</td><td>{Tag(z.DpiSslClient)}</td><td>{Tag(z.ContentFilter)}</td><td>{Tag(z.GuestServices)}</td></tr>");
+            sb.AppendLine($"<tr><td><strong>{E(z.Name)}</strong></td><td>{E(z.ZoneTypeLabel)}</td><td>{Tag(z.IntraZoneCommunication)}</td><td>{Tag(z.GatewayAntivirus)}</td><td>{TagUnknown(z.IntrusionPrevention)}</td><td>{Tag(z.AppControl)}</td><td>{Tag(z.AntiSpyware)}</td><td>{Tag(z.DpiSslClient)}</td><td>{Tag(z.ContentFilter)}</td><td>{Tag(z.GuestServices)}</td></tr>");
         sb.AppendLine("</tbody></table>");
         CloseSection(sb);
     }
@@ -636,6 +636,9 @@ document.getElementById('globalSearch').addEventListener('input', function() {
     private static string YN(bool val) => val ? "Yes" : "No";
     private static string OrAny(string val) => string.IsNullOrEmpty(val) ? "Any" : val;
     private static string OrNone(string val) => string.IsNullOrEmpty(val) ? "—" : val;
+    private static string TagUnknown(bool? val) => val is null
+        ? "<span class=\"tag\">Unknown</span>"
+        : Tag(val.Value);
     private static string Tag(bool val) => val
         ? "<span class=\"tag tag-yes\">Yes</span>"
         : "<span class=\"tag tag-no\">No</span>";
