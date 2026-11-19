@@ -19,5 +19,4 @@ public class NatPolicy
     public bool Reflexive { get; set; }
     public DateTime TimeCreated { get; set; }
     public DateTime TimeUpdated { get; set; }
-    public long HitCount { get; set; }
 }

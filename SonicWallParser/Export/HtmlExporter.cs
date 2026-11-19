@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using SonicWallParser.Analysis;
 using System.Web;
 using SonicWallParser.Models;
 
@@ -9,6 +10,9 @@ namespace SonicWallParser.Export;
 /// </summary>
 public static class HtmlExporter
 {
+    /// <summary>Largest number of unparsed groups listed in the report. The count of the rest is stated.</summary>
+    private const int MaxUnparsedRows = 150;
+
     /// <summary>
     /// Generates an interactive HTML report at the specified path from the given SonicWall configuration.
     /// </summary>
@@ -210,6 +214,7 @@ tr:hover td { background: var(--bg3); }
 .dhcp-block:last-child { border-bottom: none; }
 
 /* Warning banner */
+.note { color: var(--fg3); font-size: .85rem; margin: 6px 0; }
 .audit-banner {
   background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.2);
   border-radius: 6px; padding: 10px 14px; margin: 12px 18px;
@@ -311,9 +316,16 @@ tr:hover td { background: var(--bg3); }
         if (config.UnknownSections.Count > 0)
         {
             sb.AppendLine("<table><thead><tr><th>Unparsed Group</th><th>Keys</th><th>Sample Keys</th></tr></thead><tbody>");
-            foreach (var section in config.UnknownSections)
+            foreach (var section in config.UnknownSections.OrderByDescending(s => s.KeyCount).ThenBy(s => s.Name, StringComparer.Ordinal).Take(MaxUnparsedRows))
                 sb.AppendLine($"<tr><td>{E(section.Name)}</td><td>{section.KeyCount}</td><td>{E(string.Join(", ", section.SampleKeys))}</td></tr>");
             sb.AppendLine("</tbody></table>");
+            if (config.UnknownSections.Count > MaxUnparsedRows)
+            {
+                var shown = config.UnknownSections.OrderByDescending(s => s.KeyCount).Take(MaxUnparsedRows).Sum(s => s.KeyCount);
+                var total = config.UnknownSections.Sum(s => s.KeyCount);
+                sb.AppendLine($"<p class=\"note\">Showing the {MaxUnparsedRows} largest of {config.UnknownSections.Count:N0} unparsed groups " +
+                              $"({shown:N0} of {total:N0} unparsed keys). The rest are smaller groups the parser does not read yet.</p>");
+            }
         }
         CloseSection(sb);
     }
@@ -396,6 +408,9 @@ tr:hover td { background: var(--bg3); }
     {
         if (config.FirewallPolicies.Count == 0) return;
         OpenSection(sb, "sec-fw", "Firewall Policies (IPv4)", config.FirewallPolicies.Count);
+        sb.AppendLine($"<p class=\"note\">{E(ReportText.RuleOriginSummary(config))}</p>");
+        if (ReportText.ActionNote(config) is { } actionNote)
+            sb.AppendLine($"<p class=\"note\">{E(actionNote)}</p>");
         sb.AppendLine("<table><thead><tr><th>#</th><th>Action</th><th>Src Zone</th><th>Dst Zone</th><th>Source</th><th>Destination</th><th>Service</th><th>On</th><th>Hits</th><th>Comment</th></tr></thead><tbody>");
         foreach (var p in config.FirewallPolicies)
         {
@@ -424,9 +439,9 @@ tr:hover td { background: var(--bg3); }
     {
         if (config.NatPolicies.Count == 0) return;
         OpenSection(sb, "sec-nat", "NAT Policies (IPv4)", config.NatPolicies.Count);
-        sb.AppendLine("<table><thead><tr><th>#</th><th>Orig Src</th><th>Orig Dst</th><th>Orig Svc</th><th>Trans Src</th><th>Trans Dst</th><th>Trans Svc</th><th>On</th><th>Hits</th><th>Comment</th></tr></thead><tbody>");
+        sb.AppendLine("<table><thead><tr><th>#</th><th>Orig Src</th><th>Orig Dst</th><th>Orig Svc</th><th>Trans Src</th><th>Trans Dst</th><th>Trans Svc</th><th>On</th><th>Comment</th></tr></thead><tbody>");
         foreach (var n in config.NatPolicies)
-            sb.AppendLine($"<tr><td>{n.Index}</td><td>{E(OrAny(n.OriginalSource))}</td><td>{E(OrAny(n.OriginalDest))}</td><td>{E(OrAny(n.OriginalService))}</td><td>{E(OrAny(n.TranslatedSource))}</td><td>{E(OrAny(n.TranslatedDest))}</td><td>{E(OrAny(n.TranslatedService))}</td><td>{Tag(n.Enabled)}</td><td>{n.HitCount:N0}</td><td>{E(n.Comment)}</td></tr>");
+            sb.AppendLine($"<tr><td>{n.Index}</td><td>{E(OrAny(n.OriginalSource))}</td><td>{E(OrAny(n.OriginalDest))}</td><td>{E(OrAny(n.OriginalService))}</td><td>{E(OrAny(n.TranslatedSource))}</td><td>{E(OrAny(n.TranslatedDest))}</td><td>{E(OrAny(n.TranslatedService))}</td><td>{Tag(n.Enabled)}</td><td>{E(n.Comment)}</td></tr>");
         sb.AppendLine("</tbody></table>");
         CloseSection(sb);
     }
@@ -583,12 +598,11 @@ tr:hover td { background: var(--bg3); }
 
     private static void SectionUnusedRules(StringBuilder sb, SonicWallConfig config)
     {
-        var unused = config.FirewallPolicies
-            .Where(p => p.HitCount == 0 && p.Enabled && !p.IsDefault).ToList();
+        var unused = RuleAudit.UnusedRules(config.FirewallPolicies);
         if (unused.Count == 0) return;
 
-        OpenSection(sb, "sec-audit", "Audit: Enabled Rules with Zero Hits", unused.Count);
-        sb.AppendLine("<div class=\"audit-banner\">These enabled, non-default firewall rules have never matched traffic and may be candidates for cleanup.</div>");
+        OpenSection(sb, "sec-audit", "Audit: Unused Custom Rules (Zero Hits)", unused.Count);
+        sb.AppendLine($"<div class=\"audit-banner\">These enabled custom firewall rules have never matched traffic and may be candidates for review. {E(RuleAudit.HitCounterCaveat)}</div>");
         sb.AppendLine("<table><thead><tr><th>#</th><th>Action</th><th>Src Zone</th><th>Dst Zone</th><th>Source</th><th>Destination</th><th>Service</th><th>Comment</th></tr></thead><tbody>");
         foreach (var p in unused)
         {

@@ -1,4 +1,5 @@
 using System.Text;
+using SonicWallParser.Analysis;
 using SonicWallParser.Models;
 
 namespace SonicWallParser.Export;
@@ -199,6 +200,13 @@ public static class MarkdownExporter
         sb.AppendLine("---");
         sb.AppendLine("## Firewall Policies (IPv4)");
         sb.AppendLine();
+        sb.AppendLine(ReportText.RuleOriginSummary(config));
+        sb.AppendLine();
+        if (ReportText.ActionNote(config) is { } actionNote)
+        {
+            sb.AppendLine(actionNote);
+            sb.AppendLine();
+        }
         sb.AppendLine("| # | Action | Src Zone | Dst Zone | Source | Destination | Service | On | Hits | Comment |");
         sb.AppendLine("|---|--------|----------|----------|--------|-------------|---------|-----|------|---------|");
         foreach (var p in config.FirewallPolicies)
@@ -475,16 +483,15 @@ public static class MarkdownExporter
 
     private static void UnusedRulesSection(StringBuilder sb, SonicWallConfig config)
     {
-        var unused = config.FirewallPolicies
-            .Where(p => p.HitCount == 0 && p.TimeLastHit == DateTime.MinValue && !p.IsDefault)
-            .ToList();
+        var unused = RuleAudit.UnusedRules(config.FirewallPolicies);
 
         if (unused.Count == 0) return;
 
         sb.AppendLine("---");
-        sb.AppendLine("## ⚠ Unused Firewall Rules (0 Hits)");
+        sb.AppendLine("## ⚠ Unused Custom Rules (Zero Hits)");
         sb.AppendLine();
-        sb.AppendLine("These non-default rules have never matched any traffic and may be candidates for cleanup.");
+        sb.AppendLine("These enabled custom rules have never matched any traffic and may be candidates for review. " +
+                      RuleAudit.HitCounterCaveat);
         sb.AppendLine();
         sb.AppendLine("| # | Action | Src Zone → Dst Zone | Source | Destination | Service | Comment |");
         sb.AppendLine("|---|--------|---------------------|--------|-------------|---------|---------|");

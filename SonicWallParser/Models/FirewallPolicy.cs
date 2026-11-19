@@ -17,7 +17,11 @@ public class FirewallPolicy
     public string Name { get; set; } = string.Empty;
     public bool Enabled { get; set; }
     public bool Logging { get; set; }
-    public bool IsDefault { get; set; }
+    /// <summary>Raw <c>policyDefaultRule</c> value. A three-state flag, not a boolean: use <see cref="Origin"/>.</summary>
+    public int DefaultRuleFlag { get; set; }
+
+    /// <summary>Where the rule came from, derived from several fields (see <c>RuleClassifier</c>).</summary>
+    public RuleOrigin Origin { get; set; }
     public int Priority { get; set; }
     public long HitCount { get; set; }
     public DateTime TimeCreated { get; set; }

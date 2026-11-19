@@ -1,6 +1,7 @@
 ﻿using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SonicWallParser.Analysis;
 using SonicWallParser.Models;
 
 namespace SonicWallParser.Export;
@@ -81,6 +82,9 @@ public static class PdfExporter
 
                     col.Item().PageBreak();
                     col.Item().Element(c => SectionTitle(c, "Firewall Policies (IPv4)"));
+                    col.Item().PaddingBottom(2).Text(ReportText.RuleOriginSummary(config)).FontSize(7).Italic().FontColor("#666666");
+                    if (ReportText.ActionNote(config) is { } actionNote)
+                        col.Item().PaddingBottom(4).Text(actionNote).FontSize(7).Italic().FontColor("#666666");
                     col.Item().Element(c => FirewallPoliciesTable(c, config.FirewallPolicies));
 
                     if (config.FirewallPoliciesV6.Count > 0)
@@ -163,14 +167,12 @@ public static class PdfExporter
                         col.Item().Element(c => NacProfilesTable(c, config.NacProfiles));
                     }
 
-                    var unused = config.FirewallPolicies
-                        .Where(p => p.HitCount == 0 && p.TimeLastHit == DateTime.MinValue && !p.IsDefault)
-                        .ToList();
+                    var unused = RuleAudit.UnusedRules(config.FirewallPolicies);
                     if (unused.Count > 0)
                     {
                         col.Item().PageBreak();
-                        col.Item().Element(c => SectionTitle(c, "⚠ Unused Firewall Rules (0 Hits)"));
-                        col.Item().PaddingBottom(4).Text("Non-default rules that have never matched traffic.")
+                        col.Item().Element(c => SectionTitle(c, "⚠ Unused Custom Rules (Zero Hits)"));
+                        col.Item().PaddingBottom(4).Text("Enabled custom rules that have never matched traffic. " + RuleAudit.HitCounterCaveat)
                             .FontSize(7).Italic().FontColor("#666666");
                         col.Item().Element(c => UnusedRulesTable(c, unused));
                     }

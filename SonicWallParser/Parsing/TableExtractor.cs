@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using SonicWallParser.Analysis;
 using SonicWallParser.Models;
 
 namespace SonicWallParser.Parsing;
@@ -227,7 +228,7 @@ public sealed class TableExtractor
 
         foreach (var i in indexes)
         {
-            list.Add(new FirewallPolicy
+            var policy = new FirewallPolicy
             {
                 Index = i,
                 Action = GetInt($"policyAction_{i}"),
@@ -241,13 +242,16 @@ public sealed class TableExtractor
                 Name = Get($"policyName_{i}"),
                 Enabled = GetBool($"policyEnabled_{i}"),
                 Logging = GetBool($"policyLog_{i}"),
-                IsDefault = GetBool($"policyDefaultRule_{i}"),
+                DefaultRuleFlag = GetInt($"policyDefaultRule_{i}"),
                 Priority = GetInt($"policyPriority_{i}"),
                 HitCount = GetLong($"policyHitCount_{i}"),
                 TimeCreated = GetUnixTime($"policyTimeCreated_{i}"),
                 TimeUpdated = GetUnixTime($"policyTimeUpdated_{i}"),
                 TimeLastHit = GetUnixTime($"policyTimeLastHit_{i}"),
-            });
+            };
+            policy.Origin = RuleClassifier.Classify(
+                policy.Name, policy.Comment, policy.SourceNet, policy.DestNet, policy.DestSvc, policy.DefaultRuleFlag);
+            list.Add(policy);
         }
 
         return list;
@@ -260,7 +264,7 @@ public sealed class TableExtractor
 
         foreach (var i in indexes)
         {
-            list.Add(new FirewallPolicyV6
+            var policy = new FirewallPolicyV6
             {
                 Index = i,
                 Action = GetInt($"policyActionV6_{i}"),
@@ -273,12 +277,15 @@ public sealed class TableExtractor
                 Comment = Get($"policyCommentV6_{i}"),
                 Name = Get($"policyNameV6_{i}"),
                 Enabled = GetBool($"policyEnabledV6_{i}"),
-                IsDefault = GetBool($"policyDefaultRuleV6_{i}"),
+                DefaultRuleFlag = GetInt($"policyDefaultRuleV6_{i}"),
                 Priority = GetInt($"policyPriorityV6_{i}"),
                 HitCount = GetLong($"policyHitCountV6_{i}"),
                 TimeCreated = GetUnixTime($"policyTimeCreatedV6_{i}"),
                 TimeUpdated = GetUnixTime($"policyTimeUpdatedV6_{i}"),
-            });
+            };
+            policy.Origin = RuleClassifier.Classify(
+                policy.Name, policy.Comment, policy.SourceNet, policy.DestNet, policy.DestSvc, policy.DefaultRuleFlag);
+            list.Add(policy);
         }
 
         return list;
