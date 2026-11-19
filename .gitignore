@@ -28,3 +28,7 @@ Desktop.ini
 
 ## Misc
 *.log
+
+samples/
+*.exp
+*-report.*
