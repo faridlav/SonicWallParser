@@ -578,12 +578,12 @@ public static class PdfExporter
                     Row("Local Network", vpn.LocalNetwork, r++);
                     Row("Remote Network", vpn.RemoteNetwork, r++);
                     Row("Bound To", vpn.BoundToInterface, r++);
-                    Row("P1 Exchange", vpn.P1Exchange == 1 ? "Main Mode" : vpn.P1Exchange == 2 ? "Aggressive" : $"Mode {vpn.P1Exchange}", r++);
+                    Row("P1 Exchange", CryptoEnums.ExchangeMode(vpn.P1Exchange), r++);
                     Row("P1 DH Group", CryptoEnums.DhGroup(vpn.P1DhGroup), r++);
                     Row("P1 Encryption", CryptoEnums.EncryptionAlgorithm(vpn.P1CryptAlg), r++);
                     Row("P1 Auth", CryptoEnums.HashAlgorithm(vpn.P1AuthAlg), r++);
                     Row("P1 Lifetime", $"{vpn.P1LifeSecs:N0}s", r++);
-                    Row("P2 Protocol", vpn.P2Protocol == 50 ? "ESP" : vpn.P2Protocol == 51 ? "AH" : $"{vpn.P2Protocol}", r++);
+                    Row("P2 Protocol", CryptoEnums.Protocol(vpn.P2Protocol), r++);
                     Row("P2 Encryption", CryptoEnums.EncryptionAlgorithm(vpn.P2CryptAlg), r++);
                     Row("P2 Auth", CryptoEnums.HashAlgorithm(vpn.P2AuthAlg), r++);
                     Row("P2 PFS", YN(vpn.PfsEnabled), r++);

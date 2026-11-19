@@ -319,13 +319,13 @@ public static class MarkdownExporter
             sb.AppendLine($"| Remote Network | {C(vpn.RemoteNetwork)} |");
             sb.AppendLine($"| Bound To | {C(vpn.BoundToInterface)} |");
             sb.AppendLine($"| **Phase 1** | |");
-            sb.AppendLine($"| Exchange Mode | {(vpn.P1Exchange == 1 ? "Main Mode" : vpn.P1Exchange == 2 ? "Aggressive Mode" : $"Mode {vpn.P1Exchange}")} |");
+            sb.AppendLine($"| Exchange Mode | {CryptoEnums.ExchangeMode(vpn.P1Exchange)} |");
             sb.AppendLine($"| DH Group | {CryptoEnums.DhGroup(vpn.P1DhGroup)} |");
             sb.AppendLine($"| Encryption | {CryptoEnums.EncryptionAlgorithm(vpn.P1CryptAlg)} |");
             sb.AppendLine($"| Authentication | {CryptoEnums.HashAlgorithm(vpn.P1AuthAlg)} |");
             sb.AppendLine($"| Lifetime | {vpn.P1LifeSecs:N0} seconds |");
             sb.AppendLine($"| **Phase 2** | |");
-            sb.AppendLine($"| Protocol | {(vpn.P2Protocol == 50 ? "ESP" : vpn.P2Protocol == 51 ? "AH" : $"Protocol {vpn.P2Protocol}")} |");
+            sb.AppendLine($"| Protocol | {CryptoEnums.Protocol(vpn.P2Protocol)} |");
             sb.AppendLine($"| Encryption | {CryptoEnums.EncryptionAlgorithm(vpn.P2CryptAlg)} |");
             sb.AppendLine($"| Authentication | {CryptoEnums.HashAlgorithm(vpn.P2AuthAlg)} |");
             sb.AppendLine($"| PFS | {YN(vpn.PfsEnabled)} |");
