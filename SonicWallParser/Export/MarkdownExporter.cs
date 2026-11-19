@@ -94,7 +94,7 @@ public static class MarkdownExporter
             sb.AppendLine("| Firmware Version | Upgrade Date |");
             sb.AppendLine("|------------------|--------------|");
             foreach (var fw in config.FirmwareHistory)
-                sb.AppendLine($"| {fw.BuildNumber} | {fw.Timestamp} |");
+                sb.AppendLine($"| {C(fw.BuildNumber)} | {C(fw.Timestamp)} |");
             sb.AppendLine();
         }
     }
@@ -110,7 +110,7 @@ public static class MarkdownExporter
         sb.AppendLine("|------|------|------------|-----|-----|----------|----------|---------|-----|");
         foreach (var z in config.Zones)
         {
-            sb.AppendLine($"| {z.Name} | {z.ZoneTypeLabel} | {YN(z.IntraZoneCommunication)} | " +
+            sb.AppendLine($"| {C(z.Name)} | {C(z.ZoneTypeLabel)} | {YN(z.IntraZoneCommunication)} | " +
                           $"{YN(z.GatewayAntivirus)} | {ReportText.YesNoUnknown(z.IntrusionPrevention)} | " +
                           $"{YN(z.AppControl)} | {YN(z.AntiSpyware)} | {YN(z.DpiSslClient)} | " +
                           $"{YN(z.ContentFilter)} |");
@@ -130,8 +130,8 @@ public static class MarkdownExporter
         foreach (var iface in config.Interfaces)
         {
             var vlan = iface.VlanTag > 0 ? iface.VlanTag.ToString() : "—";
-            sb.AppendLine($"| {iface.Name} | {iface.Comment} | {iface.ZoneName} | " +
-                          $"{iface.ActiveIp} | {iface.ActiveMask} | {vlan} | " +
+            sb.AppendLine($"| {C(iface.Name)} | {C(iface.Comment)} | {C(iface.ZoneName)} | " +
+                          $"{C(iface.ActiveIp)} | {C(iface.ActiveMask)} | {vlan} | " +
                           $"{YN(iface.HttpsMgmt)} | {YN(iface.SshMgmt)} | " +
                           $"{YN(iface.PingMgmt)} | {YN(iface.SnmpMgmt)} |");
         }
@@ -148,7 +148,7 @@ public static class MarkdownExporter
         sb.AppendLine("| # | Name | Type | Address | Zone |");
         sb.AppendLine("|---|------|------|---------|------|");
         foreach (var ao in config.AddressObjects)
-            sb.AppendLine($"| {ao.Index} | {ao.Name} | {ao.TypeLabel} | {ao.FormattedAddress} | {ao.Zone} |");
+            sb.AppendLine($"| {ao.Index} | {C(ao.Name)} | {C(ao.TypeLabel)} | {C(ao.FormattedAddress)} | {C(ao.Zone)} |");
         sb.AppendLine();
     }
 
@@ -162,7 +162,7 @@ public static class MarkdownExporter
         sb.AppendLine("| Group | Member |");
         sb.AppendLine("|-------|--------|");
         foreach (var gm in config.AddressGroupMemberships.OrderBy(g => g.Group))
-            sb.AppendLine($"| {gm.Group} | {gm.Member} |");
+            sb.AppendLine($"| {C(gm.Group)} | {C(gm.Member)} |");
         sb.AppendLine();
     }
 
@@ -176,7 +176,7 @@ public static class MarkdownExporter
         sb.AppendLine("| # | Name | Protocol | Ports |");
         sb.AppendLine("|---|------|----------|-------|");
         foreach (var svc in config.ServiceObjects)
-            sb.AppendLine($"| {svc.Index} | {svc.Name} | {svc.Protocol} | {svc.PortRange} |");
+            sb.AppendLine($"| {svc.Index} | {C(svc.Name)} | {C(svc.Protocol)} | {C(svc.PortRange)} |");
         sb.AppendLine();
     }
 
@@ -190,7 +190,7 @@ public static class MarkdownExporter
         sb.AppendLine("| Group | Member |");
         sb.AppendLine("|-------|--------|");
         foreach (var gm in config.ServiceGroupMemberships.OrderBy(g => g.Group))
-            sb.AppendLine($"| {gm.Group} | {gm.Member} |");
+            sb.AppendLine($"| {C(gm.Group)} | {C(gm.Member)} |");
         sb.AppendLine();
     }
 
@@ -205,7 +205,7 @@ public static class MarkdownExporter
         sb.AppendLine("|---|------|-------------|");
         foreach (var s in config.Schedules)
         {
-            sb.AppendLine($"| {s.Index} | {s.Name} | {s.TimeWindow} |");
+            sb.AppendLine($"| {s.Index} | {C(s.Name)} | {C(s.TimeWindow)} |");
         }
         sb.AppendLine();
     }
@@ -228,9 +228,9 @@ public static class MarkdownExporter
         sb.AppendLine("|---|--------|----------|----------|--------|-------------|---------|-----|------|---------|");
         foreach (var p in config.FirewallPolicies)
         {
-            sb.AppendLine($"| {p.Index} | {p.ActionLabel} | {p.SourceZone} | {p.DestZone} | " +
+            sb.AppendLine($"| {p.Index} | {C(p.ActionLabel)} | {C(p.SourceZone)} | {C(p.DestZone)} | " +
                           $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | " +
-                          $"{YN(p.Enabled)} | {p.HitCount:N0} | {p.Comment} |");
+                          $"{YN(p.Enabled)} | {p.HitCount:N0} | {C(p.Comment)} |");
         }
         sb.AppendLine();
     }
@@ -246,9 +246,9 @@ public static class MarkdownExporter
         sb.AppendLine("|---|--------|----------|----------|--------|-------------|---------|-----|---------|");
         foreach (var p in config.FirewallPoliciesV6)
         {
-            sb.AppendLine($"| {p.Index} | {p.ActionLabel} | {p.SourceZone} | {p.DestZone} | " +
+            sb.AppendLine($"| {p.Index} | {C(p.ActionLabel)} | {C(p.SourceZone)} | {C(p.DestZone)} | " +
                           $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | " +
-                          $"{YN(p.Enabled)} | {p.Comment} |");
+                          $"{YN(p.Enabled)} | {C(p.Comment)} |");
         }
         sb.AppendLine();
     }
@@ -267,7 +267,7 @@ public static class MarkdownExporter
             sb.AppendLine($"| {n.Index} | {OrAny(n.OriginalSource)} | {OrAny(n.OriginalDest)} | " +
                           $"{OrAny(n.OriginalService)} | {OrAny(n.TranslatedSource)} | " +
                           $"{OrAny(n.TranslatedDest)} | {OrAny(n.TranslatedService)} | " +
-                          $"{YN(n.Enabled)} | {n.Comment} |");
+                          $"{YN(n.Enabled)} | {C(n.Comment)} |");
         }
         sb.AppendLine();
     }
@@ -286,7 +286,7 @@ public static class MarkdownExporter
             sb.AppendLine($"| {n.Index} | {OrAny(n.OriginalSource)} | {OrAny(n.OriginalDest)} | " +
                           $"{OrAny(n.OriginalService)} | {OrAny(n.TranslatedSource)} | " +
                           $"{OrAny(n.TranslatedDest)} | {OrAny(n.TranslatedService)} | " +
-                          $"{YN(n.Enabled)} | {n.Comment} |");
+                          $"{YN(n.Enabled)} | {C(n.Comment)} |");
         }
         sb.AppendLine();
     }
@@ -314,10 +314,10 @@ public static class MarkdownExporter
             sb.AppendLine("| Parameter | Value |");
             sb.AppendLine("|-----------|-------|");
             sb.AppendLine($"| Policy Type | {policyType} |");
-            sb.AppendLine($"| Remote ID | {vpn.Phase1RemoteId} |");
-            sb.AppendLine($"| Local Network | {vpn.LocalNetwork} |");
-            sb.AppendLine($"| Remote Network | {vpn.RemoteNetwork} |");
-            sb.AppendLine($"| Bound To | {vpn.BoundToInterface} |");
+            sb.AppendLine($"| Remote ID | {C(vpn.Phase1RemoteId)} |");
+            sb.AppendLine($"| Local Network | {C(vpn.LocalNetwork)} |");
+            sb.AppendLine($"| Remote Network | {C(vpn.RemoteNetwork)} |");
+            sb.AppendLine($"| Bound To | {C(vpn.BoundToInterface)} |");
             sb.AppendLine($"| **Phase 1** | |");
             sb.AppendLine($"| Exchange Mode | {(vpn.P1Exchange == 1 ? "Main Mode" : vpn.P1Exchange == 2 ? "Aggressive Mode" : $"Mode {vpn.P1Exchange}")} |");
             sb.AppendLine($"| DH Group | {CryptoEnums.DhGroup(vpn.P1DhGroup)} |");
@@ -348,7 +348,7 @@ public static class MarkdownExporter
         sb.AppendLine("| # | Username | Comment | VPN Access |");
         sb.AppendLine("|---|----------|---------|------------|");
         foreach (var u in config.Users)
-            sb.AppendLine($"| {u.Index} | {u.Name} | {u.Comment} | {OrNone(u.VpnDestNet)} |");
+            sb.AppendLine($"| {u.Index} | {C(u.Name)} | {C(u.Comment)} | {OrNone(u.VpnDestNet)} |");
         sb.AppendLine();
     }
 
@@ -362,7 +362,7 @@ public static class MarkdownExporter
         sb.AppendLine("| # | Group Name | Comment | VPN Access |");
         sb.AppendLine("|---|------------|---------|------------|");
         foreach (var g in config.UserGroups)
-            sb.AppendLine($"| {g.Index} | {g.Name} | {g.Comment} | {OrNone(g.VpnDestNet)} |");
+            sb.AppendLine($"| {g.Index} | {C(g.Name)} | {C(g.Comment)} | {OrNone(g.VpnDestNet)} |");
         sb.AppendLine();
     }
 
@@ -376,7 +376,7 @@ public static class MarkdownExporter
         sb.AppendLine("| User | Group |");
         sb.AppendLine("|------|-------|");
         foreach (var gm in config.UserGroupMemberships.OrderBy(g => g.Group))
-            sb.AppendLine($"| {gm.Member} | {gm.Group} |");
+            sb.AppendLine($"| {C(gm.Member)} | {C(gm.Group)} |");
         sb.AppendLine();
     }
 
@@ -394,13 +394,13 @@ public static class MarkdownExporter
             sb.AppendLine();
             sb.AppendLine("| Parameter | Value |");
             sb.AppendLine("|-----------|-------|");
-            sb.AppendLine($"| Range | {scope.IpStart} — {scope.IpEnd} |");
-            sb.AppendLine($"| Subnet Mask | {scope.SubnetMask} |");
-            sb.AppendLine($"| Gateway | {scope.Gateway} |");
-            sb.AppendLine($"| DNS 1 | {scope.Dns1} |");
-            sb.AppendLine($"| DNS 2 | {scope.Dns2} |");
-            sb.AppendLine($"| DNS 3 | {scope.Dns3} |");
-            sb.AppendLine($"| Domain Name | {scope.DomainName} |");
+            sb.AppendLine($"| Range | {C(scope.IpStart)} — {C(scope.IpEnd)} |");
+            sb.AppendLine($"| Subnet Mask | {C(scope.SubnetMask)} |");
+            sb.AppendLine($"| Gateway | {C(scope.Gateway)} |");
+            sb.AppendLine($"| DNS 1 | {C(scope.Dns1)} |");
+            sb.AppendLine($"| DNS 2 | {C(scope.Dns2)} |");
+            sb.AppendLine($"| DNS 3 | {C(scope.Dns3)} |");
+            sb.AppendLine($"| Domain Name | {C(scope.DomainName)} |");
             sb.AppendLine($"| WINS | {ReportText.MdCell(string.Join(", ", new[] { scope.Wins1, scope.Wins2 }.Where(w => !string.IsNullOrEmpty(w))))} |");
             sb.AppendLine($"| Lease Time | {ReportText.Lease(scope.LeaseTime)} |");
             sb.AppendLine($"| Enabled | {YN(scope.Enabled)} |");
@@ -424,7 +424,7 @@ public static class MarkdownExporter
             sb.AppendLine("|---|------|---------|---------|----------------|----------------|---------------------|");
             foreach (var g in config.WanLbGroups)
             {
-                sb.AppendLine($"| {g.Index} | {g.Name} | {YN(g.Preempt)} | {YN(g.Persist)} | " +
+                sb.AppendLine($"| {g.Index} | {C(g.Name)} | {YN(g.Preempt)} | {YN(g.Persist)} | " +
                               $"{g.ProbeInterval}s | {g.ProbeLossThreshold} | {g.ProbeRecoveryThreshold} |");
             }
             sb.AppendLine();
@@ -438,9 +438,9 @@ public static class MarkdownExporter
             sb.AppendLine("|---|-----------|----------|----------------|----------------|------|");
             foreach (var m in config.WanLbMembers)
             {
-                sb.AppendLine($"| {m.Index} | {m.Name} | {m.LbPercentage}% | " +
-                              $"{m.ProbeTarget1}:{m.ProbePort1} | " +
-                              $"{m.ProbeTarget2}:{m.ProbePort2} | {m.AdminRank} |");
+                sb.AppendLine($"| {m.Index} | {C(m.Name)} | {m.LbPercentage}% | " +
+                              $"{C(m.ProbeTarget1)}:{m.ProbePort1} | " +
+                              $"{C(m.ProbeTarget2)}:{m.ProbePort2} | {m.AdminRank} |");
             }
             sb.AppendLine();
         }
@@ -457,8 +457,8 @@ public static class MarkdownExporter
         sb.AppendLine("|---|------|---------|--------|------|-------|---------|");
         foreach (var cfs in config.ContentFilterPolicies)
         {
-            sb.AppendLine($"| {cfs.Index} | {cfs.Name} | {cfs.ProfileObject} | {cfs.ActionObject} | " +
-                          $"{cfs.DestZone} | {cfs.IncludedUsers} | {YN(cfs.Enabled)} |");
+            sb.AppendLine($"| {cfs.Index} | {C(cfs.Name)} | {C(cfs.ProfileObject)} | {C(cfs.ActionObject)} | " +
+                          $"{C(cfs.DestZone)} | {C(cfs.IncludedUsers)} | {YN(cfs.Enabled)} |");
         }
         sb.AppendLine();
     }
@@ -476,7 +476,7 @@ public static class MarkdownExporter
         {
             var guarUnit = bw.GuaranteedUnit == 1 ? "Mbps" : "kbps";
             var maxUnit = bw.MaxUnit == 1 ? "Mbps" : "kbps";
-            sb.AppendLine($"| {bw.Index} | {bw.Name} | {bw.GuaranteedBw} {guarUnit} | {bw.MaxBw} {maxUnit} | {bw.Comment} |");
+            sb.AppendLine($"| {bw.Index} | {C(bw.Name)} | {bw.GuaranteedBw} {guarUnit} | {bw.MaxBw} {maxUnit} | {C(bw.Comment)} |");
         }
         sb.AppendLine();
     }
@@ -492,8 +492,8 @@ public static class MarkdownExporter
         sb.AppendLine("|---|-------------|---------|-------|-------|--------|---------------|");
         foreach (var nac in config.NacProfiles)
         {
-            sb.AppendLine($"| {nac.Index} | {nac.Description} | {nac.AddressObject} | " +
-                          $"{nac.Dns1} | {nac.Dns2} | {nac.DomainName} | {nac.ClientRoutes} |");
+            sb.AppendLine($"| {nac.Index} | {C(nac.Description)} | {C(nac.AddressObject)} | " +
+                          $"{C(nac.Dns1)} | {C(nac.Dns2)} | {C(nac.DomainName)} | {C(nac.ClientRoutes)} |");
         }
         sb.AppendLine();
     }
@@ -514,13 +514,16 @@ public static class MarkdownExporter
         sb.AppendLine("|---|--------|---------------------|--------|-------------|---------|---------|");
         foreach (var p in unused)
         {
-            sb.AppendLine($"| {p.Index} | {p.ActionLabel} | {p.SourceZone} → {p.DestZone} | " +
-                          $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | {p.Comment} |");
+            sb.AppendLine($"| {p.Index} | {C(p.ActionLabel)} | {C(p.SourceZone)} → {C(p.DestZone)} | " +
+                          $"{OrAny(p.SourceNet)} | {OrAny(p.DestNet)} | {OrAny(p.DestSvc)} | {C(p.Comment)} |");
         }
         sb.AppendLine();
     }
 
     private static string YN(bool val) => val ? "Yes" : "No";
-    private static string OrAny(string val) => string.IsNullOrEmpty(val) ? "Any" : val;
-    private static string OrNone(string val) => string.IsNullOrEmpty(val) ? "—" : val;
+    private static string OrAny(string val) => string.IsNullOrEmpty(val) ? "Any" : ReportText.MdCell(val);
+    private static string OrNone(string val) => string.IsNullOrEmpty(val) ? "—" : ReportText.MdCell(val);
+
+    /// <summary>Escapes a value for a Markdown table cell (pipes and line breaks).</summary>
+    private static string C(string? val) => ReportText.MdCell(val);
 }
