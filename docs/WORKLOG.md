@@ -84,7 +84,7 @@ Decisions:
 ## Verification performed
 
 - `dotnet build` and `dotnet test`: 347 tests pass (unit, integration, end to end through the real CLI process, golden files).
-- Each of the first Phase 2 commits was built and tested on its own in a throwaway worktree.
+- The first two Phase 2 commits (extraction, analysis) were each built and tested on their own in a throwaway worktree. Later commits were only tested at the tip of the branch.
 - CLI run on the three local samples: every run exits 0, takes about a second, reports no empty core section, and the console, Markdown and HTML agree on the unused rule count. Real values were checked only by count in a scratch project outside the repository.
 - Secret scan: the real values of every secret-bearing key on the three samples were searched for in all generated outputs and the console. No leak.
 - Redaction scan on the three samples: none of the original IPv4 addresses and none of the serials appear in redacted output. The only name strings that remain are generic words that are part of the report's own labels (for example HTTP, Ping).
