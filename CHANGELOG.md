@@ -17,6 +17,7 @@ A large rework of correctness, coverage and output. See docs/WORKLOG.md for the 
 - Name resolver for nested groups, reference graph, unused, duplicate and dangling object detection.
 - New data: rule name, schedule, logging, users, connection limits, bandwidth, GeoIP and botnet flags, IPv6 and MAC address objects, VPN name, peer gateways and state, decoded schedules, interface addressing mode, device settings, licenses.
 - Hard deny-list for secret-bearing keys, enforced before any model is built, with tests.
+- HTML: sticky contents bar, expand and collapse all, sortable columns, scrollable tables, refreshed light and dark styling.
 - PDF: US Letter landscape, larger text, cover page, clickable contents, bookmarks.
 
 ### Fixed

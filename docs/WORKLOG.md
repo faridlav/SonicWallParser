@@ -96,8 +96,12 @@ Decisions:
 - Review by the owner: the owner opened the Phase 3 PDF and HTML outputs and said they look fine. That output predates the Phase 4 CLI commit and the action label fix, so the final build's PDF and HTML have not been reviewed by a person. They were regenerated locally for that review.
 - The HTML output was not opened in a browser. Its CSS and script are the original ones, and the section and anchor structure is tested.
 - Baseline or policy comparison against a defined standard (checklist section 9, P3) is not implemented.
-- Topology diagram, sortable columns, sticky navigation and remembered open sections (checklist section 7, HTML) are not implemented.
+- Topology diagram and remembered open sections (checklist section 7, HTML) are not implemented. Sortable columns and a sticky contents bar were added in the HTML polish commit.
 - Still unconfirmed in the SonicOS UI: action value 0, IKEv2 values, default site-to-site crypto values, zone IPS on 7.x, DHCP lease unit, schedule units and day order, link ability bits, `ipsecSaDisabled`, `userObjGuestEnable`, `adminOtpReq`, evaluation order.
 - Not read at all: routes, HA, wireless, certificates, per-rule security profiles, flood protection, admin privilege masks, the indexed `prefsHistory*_N` keys.
 - No real 8.x export has been tested.
 - The existing release workflow gained a test step. It was not run on GitHub.
+
+## HTML polish (after review)
+
+Requested by the owner before pushing. Changes to `HtmlExporter` only: new stylesheet (cards, spacing, softer palette, light and dark, print rules, reduced motion), sticky contents bar that highlights the section being read, expand and collapse all, sortable columns (severity sorts by rank, numbers as numbers), the filter hides sections with no match, tables scroll horizontally on narrow screens, and storage access is wrapped in try/catch. No data model or Markdown change, so the golden files are untouched. Checked in Chrome on a redacted copy served from localhost: no console errors, sorting, filter and contents links work, and the dark and light themes render. Mobile width, print preview and the PDFs were not checked.
