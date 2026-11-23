@@ -35,9 +35,34 @@ public class InterfaceConfig
     public double BwmAmount { get; set; }
     public bool NetflowEnabled { get; set; }
     public int Mtu { get; set; }
-    public int LinkSpeed { get; set; }
+    /// <summary>
+    /// Raw <c>eth_link_ability</c> bitmask. The bit meanings are UNVERIFIED, so it is stored as measured
+    /// and not translated to a speed.
+    /// </summary>
+    public long LinkAbility { get; set; }
+
+    /// <summary>Raw <c>eth_link_ability_override</c> value (SonicOS 7.x only). Meaning unverified.</summary>
+    public long LinkAbilityOverride { get; set; }
     public bool FragPackets { get; set; }
     public bool IgnoreDfBit { get; set; }
+
+    /// <summary>Raw <c>iface_type</c>. The meaning of its values is unverified.</summary>
+    public int InterfaceTypeRaw { get; set; }
+
+    /// <summary>True when <c>iface_dhcp_enable</c> is on (the interface is a DHCP client).</summary>
+    public bool DhcpClient { get; set; }
+
+    /// <summary>Raw <c>iface_pppoe_type</c>. PPPoE, L2TP and PPTP are not detected because their keys are unconfirmed.</summary>
+    public int PppoeTypeRaw { get; set; }
+
+    /// <summary>
+    /// Addressing mode derived from confirmed keys only: DHCP when the DHCP client is on, Static when a non-zero
+    /// static address exists, otherwise Unknown. PPPoE, L2TP and PPTP are never reported (unverified).
+    /// </summary>
+    public string AddressingMode =>
+        DhcpClient ? "DHCP"
+        : !string.IsNullOrEmpty(StaticIp) && StaticIp != "0.0.0.0" ? "Static"
+        : "Unknown";
 
     /// <summary>
     /// Returns the effective IP address, preferring LAN IP over static IP.

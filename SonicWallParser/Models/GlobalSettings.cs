@@ -6,6 +6,9 @@ namespace SonicWallParser.Models;
 public class GlobalSettings
 {
     public string BuildNumber { get; set; } = string.Empty;
+
+    /// <summary>The firmware generation parsed from <see cref="BuildNumber"/>, with its support level.</summary>
+    public FirmwareVersion Firmware { get; set; } = FirmwareVersion.Unknown;
     public string ProductName { get; set; } = string.Empty;
     public string Locale { get; set; } = string.Empty;
     public string SerialNumber { get; set; } = string.Empty;

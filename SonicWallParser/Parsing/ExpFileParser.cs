@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Web;
 using SonicWallParser.Models;
 
@@ -217,11 +218,21 @@ public static class ExpFileParser
     private static bool LooksLikeDecodedSettings(string text)
         => text.Contains('=') && (text.Contains('&') || text.Contains('\n'));
 
+    /// <summary>A line that starts with a SonicOS CLI command, not a word that merely appears in a value.</summary>
+    private static readonly Regex CliCommandLine = new(
+        @"^\s*(configure(\s+terminal)?|commit|(access-rule|nat-policy|address-object|address-group|service-object|service-group)\s+\S.*)\s*$",
+        RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>Minimum CLI-looking lines before text is treated as a CLI export.</summary>
+    private const int MinCliCommandLines = 2;
+
+    /// <summary>
+    /// True for SonicOS CLI text such as "configure", "access-rule ..." and "commit" lines. Matching is
+    /// anchored to the start of a line and needs several hits, so a comment that merely contains the word
+    /// "commit" or "configure" inside a settings value is no longer rejected.
+    /// </summary>
     private static bool LooksLikeCliExport(string text)
-        => text.Contains("configure", StringComparison.OrdinalIgnoreCase) ||
-           text.Contains("commit", StringComparison.OrdinalIgnoreCase) ||
-           text.Contains("access-rule", StringComparison.OrdinalIgnoreCase) ||
-           text.Contains("nat-policy", StringComparison.OrdinalIgnoreCase);
+        => CliCommandLine.Matches(text).Count >= MinCliCommandLines;
 
     private static ParseResult<ParsedSettings> Fail(
         string message,
