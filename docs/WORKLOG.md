@@ -93,6 +93,7 @@ Decisions:
 ## Not verified or not done
 
 - The PDF output was not viewed. No rasteriser or viewer was available. It is verified structurally only: Letter media box, page counts, generation without error, bookmarks and contents code paths. A person should open the PDFs and check for cramped columns and near-empty pages.
+- Review by the owner: the owner opened the Phase 3 PDF and HTML outputs and said they look fine. That output predates the Phase 4 CLI commit and the action label fix, so the final build's PDF and HTML have not been reviewed by a person. They were regenerated locally for that review.
 - The HTML output was not opened in a browser. Its CSS and script are the original ones, and the section and anchor structure is tested.
 - Baseline or policy comparison against a defined standard (checklist section 9, P3) is not implemented.
 - Topology diagram, sortable columns, sticky navigation and remembered open sections (checklist section 7, HTML) are not implemented.
