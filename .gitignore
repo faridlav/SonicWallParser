@@ -32,3 +32,5 @@ Desktop.ini
 samples/
 *.exp
 *-report.*
+# Synthetic golden files used by the tests. They are hand-built fixtures, never real reports.
+!SonicWallParser.Tests/Golden/*-report.md
